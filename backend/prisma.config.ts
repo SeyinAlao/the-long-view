@@ -1,0 +1,11 @@
+// New in Prisma 7: connection config lives here, not in schema.prisma.
+// schema.prisma now describes pure data structure only.
+import 'dotenv/config';
+import { defineConfig, env } from 'prisma/config';
+
+export default defineConfig({
+  schema: 'prisma/schema.prisma',
+  datasource: {
+    url: env('DATABASE_URL'),
+  },
+});

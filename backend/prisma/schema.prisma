@@ -1,0 +1,258 @@
+// The Long View — Prisma schema (Phase 0)
+//
+// Phase 0 scope: entities only, matching section 25 of the spec.
+// Field-level detail will grow as each phase is implemented — this is a
+// starting shape, not a final one. See docs/decisions/ for why fields were
+// added or changed as the product grows.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ThesisStatus {
+  DRAFT
+  ACTIVE
+  EVALUATED
+}
+
+enum ReactionType {
+  LIKE
+}
+
+enum NotificationType {
+  COMMENT
+  REPLY
+  REACTION
+  COUNTER_THESIS
+  HORIZON_APPROACHING
+  THESIS_EVALUATED
+  FOLLOWED_USER_PUBLISHED
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWED
+  DISMISSED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String   @unique
+  passwordHash String
+  name         String
+  bio          String?
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  theses         Thesis[]
+  counterTheses  CounterThesis[]
+  comments       Comment[]
+  reactions      Reaction[]
+  watchlists     Watchlist[]
+  notifications  Notification[]
+  reports        Report[]
+
+  followedBy Follow[] @relation("followedBy")
+  following  Follow[] @relation("following")
+
+  @@index([username])
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("following", fields: [followerId], references: [id])
+  following User @relation("followedBy", fields: [followingId], references: [id])
+
+  @@unique([followerId, followingId])
+}
+
+model Security {
+  id            String   @id @default(cuid())
+  ticker        String   @unique
+  companyName   String
+  sector        String?
+  currentPrice  Decimal  @db.Decimal(12, 2)
+  previousPrice Decimal? @db.Decimal(12, 2)
+  updatedAt     DateTime @updatedAt
+
+  theses     Thesis[]
+  watchlists Watchlist[]
+  prices     Price[]
+
+  @@index([ticker])
+}
+
+model Price {
+  id         String   @id @default(cuid())
+  securityId String
+  price      Decimal  @db.Decimal(12, 2)
+  recordedAt DateTime @default(now())
+
+  security Security @relation(fields: [securityId], references: [id])
+
+  @@index([securityId, recordedAt])
+}
+
+model Thesis {
+  id           String       @id @default(cuid())
+  authorId     String
+  securityId   String
+  status       ThesisStatus @default(DRAFT)
+
+  referencePrice Decimal @db.Decimal(12, 2)
+  targetPrice    Decimal @db.Decimal(12, 2)
+  conviction     Int
+  horizonDays    Int
+
+  statement            String
+  bullCase             String?
+  baseCase             String?
+  bearCase             String?
+  catalysts            String?
+  risks                String?
+  invalidationCondition String?
+
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  author   User     @relation(fields: [authorId], references: [id])
+  security Security @relation(fields: [securityId], references: [id])
+
+  metrics        ThesisMetric[]
+  counterTheses  CounterThesis[]
+  comments       Comment[]
+  reactions      Reaction[]
+  outcome        ThesisOutcome?
+  reports        Report[]
+
+  @@index([securityId, status])
+  @@index([authorId])
+}
+
+model ThesisMetric {
+  id       String @id @default(cuid())
+  thesisId String
+  label    String
+  value    String
+
+  thesis Thesis @relation(fields: [thesisId], references: [id])
+
+  @@index([thesisId])
+}
+
+model CounterThesis {
+  id           String   @id @default(cuid())
+  thesisId     String
+  authorId     String
+
+  targetPrice Decimal @db.Decimal(12, 2)
+  conviction  Int
+  horizonDays Int
+  reasoning   String
+  risks       String?
+  assumptions String?
+
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  thesis Thesis @relation(fields: [thesisId], references: [id])
+  author User   @relation(fields: [authorId], references: [id])
+
+  @@index([thesisId])
+}
+
+model Comment {
+  id              String    @id @default(cuid())
+  thesisId        String
+  authorId        String
+  parentCommentId String?
+  body            String
+  createdAt       DateTime  @default(now())
+
+  thesis        Thesis    @relation(fields: [thesisId], references: [id])
+  author        User      @relation(fields: [authorId], references: [id])
+  parentComment Comment?  @relation("CommentReplies", fields: [parentCommentId], references: [id])
+  replies       Comment[] @relation("CommentReplies")
+
+  @@index([thesisId])
+}
+
+model Reaction {
+  id        String       @id @default(cuid())
+  userId    String
+  thesisId  String
+  type      ReactionType @default(LIKE)
+  createdAt DateTime     @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  thesis Thesis @relation(fields: [thesisId], references: [id])
+
+  @@unique([userId, thesisId, type])
+}
+
+model Watchlist {
+  id         String   @id @default(cuid())
+  userId     String
+  securityId String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id])
+  security Security @relation(fields: [securityId], references: [id])
+
+  @@unique([userId, securityId])
+}
+
+// Deterministic, idempotent evaluation record. One outcome per thesis —
+// evaluation is a one-way transition (see docs/decisions for the race-
+// condition and idempotency approach once Phase 6 lands).
+model ThesisOutcome {
+  id              String   @id @default(cuid())
+  thesisId        String   @unique
+  evaluationPrice Decimal  @db.Decimal(12, 2)
+  actualReturn    Decimal  @db.Decimal(8, 4)
+  targetReturn    Decimal  @db.Decimal(8, 4)
+  outcomeScore    Decimal  @db.Decimal(8, 4)
+  evaluatedAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  thesis Thesis @relation(fields: [thesisId], references: [id])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  payload   Json
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, read])
+}
+
+model Report {
+  id         String       @id @default(cuid())
+  reporterId String
+  thesisId   String?
+  reason     String
+  status     ReportStatus @default(OPEN)
+  createdAt  DateTime     @default(now())
+
+  reporter User    @relation(fields: [reporterId], references: [id])
+  thesis   Thesis? @relation(fields: [thesisId], references: [id])
+
+  @@index([status])
+}

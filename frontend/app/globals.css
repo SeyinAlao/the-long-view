@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cream: #f7f4ef;
+  --color-ink: #211d17;
+  --color-muted: #6b6459;
+  --color-brass: #c8a455;
+  --color-brass-dark: #8a6d2e;
+  --color-terracotta: #c8622a;
+  --color-hairline: #211d17;
+
+  --font-serif: var(--font-instrument-serif), ui-serif, Georgia, serif;
+  --font-mono: var(--font-dm-mono), ui-monospace, "SFMono-Regular", monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-cream text-ink antialiased;
+    font-family: var(--font-mono);
+  }
+
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-serif);
+  }
+}
+
+/* Respected globally, not bolted on per-component later. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

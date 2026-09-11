@@ -1,0 +1,18 @@
+# Optional convenience for local development. Not required — you can also
+# point DATABASE_URL in .env at a natively-installed Postgres or a free
+# hosted instance (Neon, Supabase) instead. Matches .env.example exactly.
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: the_long_view
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
