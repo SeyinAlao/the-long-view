@@ -28,14 +28,21 @@ updates the author's public track record.
 
 ## Features
 
-**Built (Phase 0 — this commit):** repository foundation, tooling, CI, and
-the base Next.js / NestJS / Prisma skeleton. No product features yet.
+**Built:**
+- Phase 0 — repository foundation, tooling, CI, base Next.js / NestJS /
+  Prisma skeleton.
+- Phase 1 — email/password registration and login, httpOnly-cookie JWT
+  sessions, password hashing, protected-route guard (`GET /auth/me`).
+  See `docs/decisions/002-cookie-based-jwt-auth.md` for why a cookie
+  instead of a bearer token.
 
-**Planned, in order (see Roadmap below):** authentication and protected
-routes, securities and thesis creation, publish-time immutability, the
-community layer (comments, reactions, counter-thesis), market data,
-thesis evaluation and scoring, leaderboards and notifications, and a
-final polish/production-readiness pass.
+**Planned, in order (see Roadmap below):** securities and thesis
+creation, publish-time immutability, the community layer (comments,
+reactions, counter-thesis), market data, thesis evaluation and scoring,
+leaderboards and notifications, and a final polish/production-readiness
+pass. The frontend still needs real signup/login pages and `proxy.ts`
+wired to the real session (currently a TODO stub) — that's the other
+half of Phase 1, not yet done.
 
 ## Tech stack
 
@@ -90,22 +97,29 @@ to be deterministic and hard to game, not maximally clever.
 git clone <repo-url>
 cd the-long-view
 npm install
-cp .env.example .env
-# then, in two terminals:
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env.local
+# fill in backend/.env with a real DATABASE_URL, then, in two terminals:
 npm run dev:backend
 npm run dev:frontend
 ```
 
 The backend needs a running PostgreSQL instance matching `DATABASE_URL` in
-`.env`. `npm install` runs `prisma generate` automatically via `postinstall`
-in `backend/`; run `npx prisma migrate dev` inside `backend/` once a real
-schema migration exists.
+`backend/.env`. `npm install` runs `prisma generate` automatically via
+`postinstall` in `backend/`; run `npx prisma migrate dev` inside `backend/`
+once a real schema migration exists.
+
+**Why two env files instead of one at the root:** each workspace's dev
+server and CLI commands (`next dev`, `nest start`, `prisma generate`) run
+with their working directory set to that workspace's own folder, not the
+repo root — so that's where each one looks for its `.env` file by
+default. A single root-level `.env` would silently go unread by both.
 
 ## Environment variables
 
-See `.env.example` for the full list. Nothing in it is a real secret —
-`JWT_SECRET` in particular must be replaced with a long random value
-before this is ever deployed anywhere.
+See `backend/.env.example` and `frontend/.env.example` for the full list.
+Nothing in either is a real secret — `JWT_SECRET` in particular must be
+replaced with a long random value before this is ever deployed anywhere.
 
 ## Testing
 
@@ -113,7 +127,13 @@ before this is ever deployed anywhere.
 npm run lint
 npm run typecheck
 npm run test
+cd backend && npm run test:e2e && cd ..
 npm run build
+```
+
+The e2e suite needs a real running Postgres matching `backend/.env` — it
+creates and deletes real rows, so point it at a dev/test database, never
+production.
 ```
 
 ## CI/CD
@@ -127,14 +147,14 @@ protection is turned on in the GitHub repo settings.
 ## Project status
 
 ```text
-Current status: Phase 0 — repository foundation
+Current status: Phase 1 — backend auth done, frontend auth pages next
 ```
 
 ## Roadmap
 
 ```text
-Phase 0  Repository foundation                 ← this commit
-Phase 1  Authentication + protected routes
+Phase 0  Repository foundation                 ← done
+Phase 1  Authentication + protected routes      ← in progress (backend done)
 Phase 2  Securities + thesis creation
 Phase 3  Publishing + immutability
 Phase 4  Community (comments, reactions, counter-thesis)
