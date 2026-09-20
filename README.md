@@ -31,18 +31,19 @@ updates the author's public track record.
 **Built:**
 - Phase 0 — repository foundation, tooling, CI, base Next.js / NestJS /
   Prisma skeleton.
-- Phase 1 — email/password registration and login, httpOnly-cookie JWT
-  sessions, password hashing, protected-route guard (`GET /auth/me`).
-  See `docs/decisions/002-cookie-based-jwt-auth.md` for why a cookie
-  instead of a bearer token.
+- Phase 1 — email/password registration and login, Google OAuth
+  sign-in, httpOnly-cookie JWT sessions, password hashing, a protected
+  `/dashboard` route gated by `proxy.ts` calling `GET /auth/me`. A
+  Google sign-in for an email that already has a password account links
+  to that account rather than creating a duplicate — see
+  `docs/decisions/002-cookie-based-jwt-auth.md` and
+  `docs/decisions/003-google-oauth-account-linking.md`.
 
 **Planned, in order (see Roadmap below):** securities and thesis
 creation, publish-time immutability, the community layer (comments,
 reactions, counter-thesis), market data, thesis evaluation and scoring,
 leaderboards and notifications, and a final polish/production-readiness
-pass. The frontend still needs real signup/login pages and `proxy.ts`
-wired to the real session (currently a TODO stub) — that's the other
-half of Phase 1, not yet done.
+pass.
 
 ## Tech stack
 
@@ -147,14 +148,14 @@ protection is turned on in the GitHub repo settings.
 ## Project status
 
 ```text
-Current status: Phase 1 — backend auth done, frontend auth pages next
+Current status: Phase 1 — done, ready for Phase 2
 ```
 
 ## Roadmap
 
 ```text
 Phase 0  Repository foundation                 ← done
-Phase 1  Authentication + protected routes      ← in progress (backend done)
+Phase 1  Authentication + protected routes      ← done
 Phase 2  Securities + thesis creation
 Phase 3  Publishing + immutability
 Phase 4  Community (comments, reactions, counter-thesis)

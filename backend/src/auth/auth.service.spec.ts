@@ -44,7 +44,12 @@ describe('AuthService', () => {
 
       const createArg = usersService.create.mock.calls[0][0];
       expect(createArg.passwordHash).not.toBe('correct-horse-battery-staple');
-      expect(await bcrypt.compare('correct-horse-battery-staple', createArg.passwordHash)).toBe(true);
+      // register() always sets a passwordHash for a password-based signup —
+      // this assertion just tells TS what the test already guarantees.
+      expect(createArg.passwordHash).toBeTruthy();
+      expect(await bcrypt.compare('correct-horse-battery-staple', createArg.passwordHash as string)).toBe(
+        true,
+      );
     });
 
     it('rejects a duplicate email before touching the username check', async () => {
@@ -135,5 +140,86 @@ describe('AuthService', () => {
       expect(result.user).not.toHaveProperty('passwordHash');
       expect(jwtService.sign).toHaveBeenCalledWith({ sub: 'user_1', email: 'seyin@example.com' });
     });
+  });
+});
+
+describe('AuthService.loginWithGoogle', () => {
+  let authService: AuthService;
+  let usersService: jest.Mocked<
+    Pick<
+      UsersService,
+      'findByGoogleId' | 'findByEmail' | 'linkGoogleId' | 'generateUsernameFromEmail' | 'create' | 'toSafeUser'
+    >
+  >;
+  let jwtService: jest.Mocked<Pick<JwtService, 'sign'>>;
+
+  const googleProfile = { googleId: 'g-123', email: 'seyin@example.com', name: 'Seyin Alao' };
+
+  const safeUser = {
+    id: 'user_1',
+    email: 'seyin@example.com',
+    username: 'seyin',
+    name: 'Seyin Alao',
+    bio: null,
+    avatarUrl: null,
+    createdAt: new Date(),
+  };
+
+  beforeEach(() => {
+    usersService = {
+      findByGoogleId: jest.fn(),
+      findByEmail: jest.fn(),
+      linkGoogleId: jest.fn(),
+      generateUsernameFromEmail: jest.fn(),
+      create: jest.fn(),
+      toSafeUser: jest.fn(),
+    };
+    jwtService = { sign: jest.fn().mockReturnValue('signed.jwt.token') };
+    authService = new AuthService(usersService as unknown as UsersService, jwtService as unknown as JwtService);
+  });
+
+  it('logs in directly when this Google id has signed in before', async () => {
+    usersService.findByGoogleId.mockResolvedValue({ ...safeUser, passwordHash: null, googleId: 'g-123' } as any);
+    usersService.toSafeUser.mockReturnValue(safeUser);
+
+    const result = await authService.loginWithGoogle(googleProfile);
+
+    expect(usersService.findByEmail).not.toHaveBeenCalled();
+    expect(usersService.create).not.toHaveBeenCalled();
+    expect(result.user).toEqual(safeUser);
+  });
+
+  it('links the Google id onto an existing password account with the same email, rather than duplicating it', async () => {
+    usersService.findByGoogleId.mockResolvedValue(null);
+    usersService.findByEmail.mockResolvedValue({
+      ...safeUser,
+      passwordHash: 'some-existing-hash',
+      googleId: null,
+    } as any);
+    usersService.linkGoogleId.mockResolvedValue(safeUser);
+
+    const result = await authService.loginWithGoogle(googleProfile);
+
+    expect(usersService.linkGoogleId).toHaveBeenCalledWith('user_1', 'g-123');
+    expect(usersService.create).not.toHaveBeenCalled();
+    expect(result.user).toEqual(safeUser);
+  });
+
+  it('creates a brand new, passwordless account for a genuinely new person', async () => {
+    usersService.findByGoogleId.mockResolvedValue(null);
+    usersService.findByEmail.mockResolvedValue(null);
+    usersService.generateUsernameFromEmail.mockResolvedValue('seyin');
+    usersService.create.mockResolvedValue(safeUser);
+
+    const result = await authService.loginWithGoogle(googleProfile);
+
+    expect(usersService.create).toHaveBeenCalledWith({
+      email: 'seyin@example.com',
+      username: 'seyin',
+      name: 'Seyin Alao',
+      googleId: 'g-123',
+      passwordHash: null,
+    });
+    expect(result.user).toEqual(safeUser);
   });
 });
