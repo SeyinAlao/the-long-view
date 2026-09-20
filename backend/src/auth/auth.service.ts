@@ -4,6 +4,7 @@ import * as bcrypt from 'bcryptjs';
 import { UsersService, SafeUser } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { GoogleProfile } from './strategies/google.strategy';
 
 const SALT_ROUNDS = 10;
 
@@ -47,12 +48,51 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
+    // A Google-only account has no passwordHash to compare against.
+    // bcrypt.compare against null would throw an ugly, unrelated error —
+    // this gives the person a straight answer instead.
+    if (!record.passwordHash) {
+      throw new UnauthorizedException(
+        'This account uses Google sign-in. Use "Continue with Google" instead.',
+      );
+    }
+
     const passwordMatches = await bcrypt.compare(dto.password, record.passwordHash);
     if (!passwordMatches) {
       throw new UnauthorizedException('Invalid email or password');
     }
 
     const user = this.usersService.toSafeUser(record);
+    return { user, accessToken: this.signToken(user.id, user.email) };
+  }
+
+  // Called after Passport's GoogleStrategy has already verified the
+  // identity with Google. Three cases: this Google account has signed in
+  // before (find by googleId); this email already has a password account
+  // (link the Google id onto it rather than creating a duplicate); or
+  // this is a genuinely new person (create a fresh account, no password).
+  async loginWithGoogle(profile: GoogleProfile): Promise<{ user: SafeUser; accessToken: string }> {
+    const byGoogleId = await this.usersService.findByGoogleId(profile.googleId);
+    if (byGoogleId) {
+      const user = this.usersService.toSafeUser(byGoogleId);
+      return { user, accessToken: this.signToken(user.id, user.email) };
+    }
+
+    const byEmail = await this.usersService.findByEmail(profile.email);
+    if (byEmail) {
+      const user = await this.usersService.linkGoogleId(byEmail.id, profile.googleId);
+      return { user, accessToken: this.signToken(user.id, user.email) };
+    }
+
+    const username = await this.usersService.generateUsernameFromEmail(profile.email);
+    const user = await this.usersService.create({
+      email: profile.email,
+      username,
+      name: profile.name,
+      googleId: profile.googleId,
+      passwordHash: null,
+    });
+
     return { user, accessToken: this.signToken(user.id, user.email) };
   }
 

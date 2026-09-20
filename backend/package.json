@@ -31,7 +31,8 @@
     "@nestjs/passport": "^11.0.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
-    "cookie-parser": "^1.4.7"
+    "cookie-parser": "^1.4.7",
+    "passport-google-oauth20": "^2.0.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.0",
@@ -57,6 +58,7 @@
     "@types/pg": "^8.11.10",
     "@types/bcryptjs": "^2.4.6",
     "@types/passport-jwt": "^4.0.1",
-    "@types/cookie-parser": "^1.4.8"
+    "@types/cookie-parser": "^1.4.8",
+    "@types/passport-google-oauth20": "^2.0.16"
   }
 }

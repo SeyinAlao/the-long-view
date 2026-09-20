@@ -44,7 +44,10 @@ model User {
   id           String   @id @default(cuid())
   email        String   @unique
   username     String   @unique
-  passwordHash String
+  // Nullable: a Google-only account has no password to hash. Login must
+  // check for null here before ever calling bcrypt.compare against it.
+  passwordHash String?
+  googleId     String?  @unique
   name         String
   bio          String?
   avatarUrl    String?
