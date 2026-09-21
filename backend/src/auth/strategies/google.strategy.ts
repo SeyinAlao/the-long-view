@@ -13,9 +13,14 @@ export interface GoogleProfile {
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(config: ConfigService) {
     super({
-      clientID: config.get<string>('GOOGLE_CLIENT_ID') ?? '',
-      clientSecret: config.get<string>('GOOGLE_CLIENT_SECRET') ?? '',
-      callbackURL: config.get<string>('GOOGLE_CALLBACK_URL') ?? '',
+      // getOrThrow, not get() with a fallback: if these are ever missing
+      // in any environment, the error should say exactly which config
+      // key is absent, not "OAuth2Strategy requires a clientID option" —
+      // a confusing message from inside a third-party library that gives
+      // no hint about where to actually look.
+      clientID: config.getOrThrow<string>('GOOGLE_CLIENT_ID'),
+      clientSecret: config.getOrThrow<string>('GOOGLE_CLIENT_SECRET'),
+      callbackURL: config.getOrThrow<string>('GOOGLE_CALLBACK_URL'),
       scope: ['email', 'profile'],
     });
   }

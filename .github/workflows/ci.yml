@@ -41,13 +41,21 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U postgres -d the_long_view_test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/the_long_view_test?schema=public
       JWT_SECRET: ci-test-secret
+      # Non-secret placeholders — CI never actually contacts Google, but
+      # AuthModule registers GoogleStrategy as a provider, and NestJS
+      # instantiates every provider at startup, not just when its route
+      # is hit. Without these, the app fails to boot at all in CI.
+      GOOGLE_CLIENT_ID: ci-test-google-client-id
+      GOOGLE_CLIENT_SECRET: ci-test-google-client-secret
+      GOOGLE_CALLBACK_URL: http://localhost:4000/auth/google/callback
+      FRONTEND_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
