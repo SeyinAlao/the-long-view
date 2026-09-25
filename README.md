@@ -148,7 +148,7 @@ protection is turned on in the GitHub repo settings.
 ## Project status
 
 ```text
-Current status: Phase 1 — done, ready for Phase 2
+Current status: Phase 2 — done (backend). Phase 3 absorbed into it — see note below.
 ```
 
 ## Roadmap
@@ -156,8 +156,15 @@ Current status: Phase 1 — done, ready for Phase 2
 ```text
 Phase 0  Repository foundation                 ← done
 Phase 1  Authentication + protected routes      ← done
-Phase 2  Securities + thesis creation
-Phase 3  Publishing + immutability
+Phase 2  Securities + thesis creation           ← done (backend)
+Phase 3  Publishing + immutability              ← done — turned out to be
+                                                   inseparable from Phase 2,
+                                                   not a distinct phase.
+                                                   Publish-time locking
+                                                   isn't a feature you bolt
+                                                   onto thesis creation
+                                                   after the fact; it's the
+                                                   same mechanism.
 Phase 4  Community (comments, reactions, counter-thesis)
 Phase 5  Market data
 Phase 6  Evaluation + scoring
