@@ -113,8 +113,11 @@ model Thesis {
   securityId   String
   status       ThesisStatus @default(DRAFT)
 
-  referencePrice Decimal @db.Decimal(12, 2)
-  targetPrice    Decimal @db.Decimal(12, 2)
+  // Null until published — set from the security's live price at the
+  // moment of publishing, never chosen by the author. See
+  // docs/decisions/004-reference-price-at-publish-time.md.
+  referencePrice Decimal? @db.Decimal(12, 2)
+  targetPrice    Decimal  @db.Decimal(12, 2)
   conviction     Int
   horizonDays    Int
 
