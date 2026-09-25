@@ -7,9 +7,10 @@ import { HealthModule } from './health/health.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { SecuritiesModule } from './securities/securities.module';
+import { ThesesModule } from './theses/theses.module';
 
-// Phase 2 started: securities added. Remaining domain modules (theses,
-// counter-theses, comments, reactions, watchlists, track-record,
+// Phase 2: securities and thesis creation. Remaining domain modules
+// (counter-theses, comments, reactions, watchlists, track-record,
 // leaderboard, notifications, admin — spec section 24) still get added
 // one at a time, each as its own module registered here.
 @Module({
@@ -20,6 +21,7 @@ import { SecuritiesModule } from './securities/securities.module';
     UsersModule,
     AuthModule,
     SecuritiesModule,
+    ThesesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
