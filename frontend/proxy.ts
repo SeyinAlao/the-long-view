@@ -44,5 +44,9 @@ function redirectToLogin(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*'],
+  // Only /theses/new is gated here, not /theses/:path* broadly — a
+  // future thesis detail page has to stay publicly viewable for
+  // published theses (see OptionalJwtAuthGuard on the backend), so this
+  // matcher must not accidentally cover it.
+  matcher: ['/dashboard/:path*', '/theses/new'],
 };

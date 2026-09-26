@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useRegister, authErrorMessage } from '@/hooks/use-auth';
 import { GoogleButton } from './google-button';
 
@@ -10,7 +11,10 @@ export function SignupForm() {
   const [username, setUsername] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
-  const register = useRegister();
+  const searchParams = useSearchParams();
+  const next = searchParams.get('next');
+  const register = useRegister(next ?? undefined);
+  const loginHref = next ? `/login?next=${encodeURIComponent(next)}` : '/login';
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -116,7 +120,7 @@ export function SignupForm() {
 
       <p className="mt-6 text-center text-sm text-ink/70">
         Already have an account?{' '}
-        <Link href="/login" className="font-medium text-ink underline underline-offset-2">
+        <Link href={loginHref} className="font-medium text-ink underline underline-offset-2">
           Sign in
         </Link>
       </p>
