@@ -66,7 +66,3 @@ export function useLogout() {
   });
 }
 
-// Both DTO validation errors (400) and credential errors (401/409) come
-// back from the backend with a real message — apiErrorMessage (aliased
-// above as authErrorMessage for the existing auth forms) handles showing
-// it instead of a generic "something went wrong."

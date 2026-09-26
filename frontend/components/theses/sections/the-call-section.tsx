@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Controller, useWatch, type Control, type FieldErrors, type UseFormRegister } from 'react-hook-form';
 import { SecurityCombobox } from '../security-combobox';
 import { fieldClass } from '../field-styles';
+import { fetchSecurityByTicker } from '@/lib/securities';
 import type { ThesisFormValues } from '@/lib/thesis-schema';
 import type { Security } from '@/lib/securities';
 
@@ -13,15 +15,29 @@ interface TheCallSectionProps {
   control: Control<ThesisFormValues>;
   register: UseFormRegister<ThesisFormValues>;
   errors: FieldErrors<ThesisFormValues>;
+  // Set when editing an existing draft, or restoring an auto-saved one
+  // — the form already knows the ticker, but the combobox needs the
+  // full Security object to show "TICKER — Company Name" rather than
+  // just sitting empty despite a real value being selected underneath.
+  initialTicker?: string;
 }
 
-export function TheCallSection({ control, register, errors }: TheCallSectionProps) {
-  // The combobox needs the full Security object to render "TICKER —
-  // Company Name"; the form itself only ever needs the ticker string.
-  // Kept separate on purpose rather than stuffing the whole object into
-  // form state for one field that only submits as a string.
-  const [selectedSecurity, setSelectedSecurity] = useState<Security | null>(null);
+export function TheCallSection({ control, register, errors, initialTicker }: TheCallSectionProps) {
+  // Only set once the user explicitly picks something via the combobox.
+  // Until then, fall back to whatever the initial ticker resolves to —
+  // derived during render, not synced in via an effect (an effect that
+  // just copies one piece of state into another is exactly the
+  // cascading-render pattern React's own guidance says to avoid).
+  const [pickedSecurity, setPickedSecurity] = useState<Security | null>(null);
   const statement = useWatch({ control, name: 'statement' }) ?? '';
+
+  const { data: resolvedInitial } = useQuery({
+    queryKey: ['securities', 'byTicker', initialTicker],
+    queryFn: () => fetchSecurityByTicker(initialTicker!),
+    enabled: !!initialTicker && !pickedSecurity,
+  });
+
+  const selectedSecurity = pickedSecurity ?? resolvedInitial ?? null;
 
   return (
     <section>
@@ -34,7 +50,7 @@ export function TheCallSection({ control, register, errors }: TheCallSectionProp
             <SecurityCombobox
               value={selectedSecurity}
               onChange={(security) => {
-                setSelectedSecurity(security);
+                setPickedSecurity(security);
                 field.onChange(security.ticker);
               }}
               error={errors.ticker?.message}

@@ -12,10 +12,7 @@ interface TheEvidenceSectionProps {
 }
 
 export function TheEvidenceSection({ control, register }: TheEvidenceSectionProps) {
-  // Same reasoning as the security/ticker split in TheCallSection: the
-  // editor needs a stable `id` per row to animate add/remove correctly,
-  // but the form (and the backend) only ever wants {label, value} pairs.
-  // The id is UI bookkeeping, not form data.
+
   const [rows, setRows] = useState<MetricRow[]>([]);
 
   return (
