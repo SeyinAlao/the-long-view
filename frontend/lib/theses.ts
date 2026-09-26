@@ -20,16 +20,28 @@ export interface CreateThesisInput {
   metrics?: ThesisMetricInput[];
 }
 
+// Matches the real shape the backend returns — THESIS_INCLUDE in
+// theses.service.ts always attaches security and metrics, so callers
+// never have to fetch those separately.
 export interface Thesis {
   id: string;
   status: 'DRAFT' | 'ACTIVE' | 'EVALUATED';
-  ticker?: string;
+  securityId: string;
+  security: { ticker: string; companyName: string };
   targetPrice: string;
   referencePrice: string | null;
   conviction: number;
   horizonDays: number;
   statement: string;
+  bullCase: string | null;
+  baseCase: string | null;
+  bearCase: string | null;
+  catalysts: string | null;
+  risks: string | null;
+  invalidationCondition: string | null;
+  metrics: { id: string; label: string; value: string }[];
   publishedAt: string | null;
+  createdAt: string;
 }
 
 export function createThesis(input: CreateThesisInput) {
@@ -39,6 +51,25 @@ export function createThesis(input: CreateThesisInput) {
   });
 }
 
+export function updateThesis(id: string, input: Partial<CreateThesisInput>) {
+  return apiFetch<Thesis>(`/theses/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+}
+
 export function publishThesis(id: string) {
   return apiFetch<Thesis>(`/theses/${id}/publish`, { method: 'POST' });
+}
+
+export function discardThesis(id: string) {
+  return apiFetch<{ success: boolean }>(`/theses/${id}`, { method: 'DELETE' });
+}
+
+export function fetchMyTheses() {
+  return apiFetch<Thesis[]>('/theses/mine');
+}
+
+export function fetchThesis(id: string) {
+  return apiFetch<Thesis>(`/theses/${id}`);
 }

@@ -4,8 +4,6 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { searchSecurities } from '@/lib/securities';
 
-// Hand-rolled debounce rather than a library — this is the one place in
-// the app that needs it, and the whole thing is four lines.
 function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value);
 

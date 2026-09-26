@@ -1,23 +1,64 @@
 'use client';
 
-import { useMutation } from '@tanstack/react-query';
-import { createThesis, publishThesis, type CreateThesisInput } from '@/lib/theses';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  createThesis,
+  updateThesis,
+  publishThesis,
+  discardThesis,
+  fetchMyTheses,
+  fetchThesis,
+  type CreateThesisInput,
+} from '@/lib/theses';
 
-export function useCreateDraft() {
-  return useMutation({
-    mutationFn: (input: CreateThesisInput) => createThesis(input),
+export function useMyTheses() {
+  return useQuery({
+    queryKey: ['theses', 'mine'],
+    queryFn: fetchMyTheses,
   });
 }
 
-// Publishing from a blank form is one user action but two API calls -
-// create the draft, then immediately lock it. Modeled as its own
-// mutation so the form doesn't have to juggle chaining two mutation
-// objects together by hand.
-export function useCreateAndPublish() {
+export function useThesis(id: string) {
+  return useQuery({
+    queryKey: ['theses', id],
+    queryFn: () => fetchThesis(id),
+    enabled: !!id,
+  });
+}
+
+export function useSaveDraft(existingId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: CreateThesisInput) =>
+      existingId ? updateThesis(existingId, input) : createThesis(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['theses', 'mine'] });
+    },
+  });
+}
+
+export function usePublish(existingId?: string) {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (input: CreateThesisInput) => {
-      const draft = await createThesis(input);
-      return publishThesis(draft.id);
+      const thesis = existingId ? await updateThesis(existingId, input) : await createThesis(input);
+      return publishThesis(thesis.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['theses', 'mine'] });
+    },
+  });
+}
+
+export function useDiscardDraft() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => discardThesis(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['theses', 'mine'] });
     },
   });
 }

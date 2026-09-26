@@ -44,9 +44,6 @@ export function fetchCurrentUser() {
   return apiFetch<{ user: SafeUser }>('/auth/me');
 }
 
-// Plain navigation, not a fetch call — clicking this should send the
-// whole browser to the backend, which redirects on to Google. There's
-// no JSON response to handle client-side.
 export function googleSignInUrl(): string {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
   return `${apiUrl}/auth/google`;

@@ -26,17 +26,25 @@ export default async function DashboardPage() {
         Signed in as {user.email} · @{user.username}
       </p>
 
-      <Link
-        href="/theses/new"
-        className="mt-8 inline-block rounded-full bg-ink px-5 py-3 text-sm font-medium text-cream transition-opacity hover:opacity-90"
-      >
-        Write a thesis
-      </Link>
+      <div className="mt-8 flex gap-3">
+        <Link
+          href="/theses/new"
+          className="inline-block rounded-full bg-ink px-5 py-3 text-sm font-medium text-cream transition-opacity hover:opacity-90"
+        >
+          Write a thesis
+        </Link>
+        <Link
+          href="/theses/mine"
+          className="inline-block rounded-full border border-ink/20 px-5 py-3 text-sm font-medium text-ink transition-colors hover:bg-ink/5"
+        >
+          My research
+        </Link>
+      </div>
 
       <p className="mt-6 max-w-prose text-sm leading-relaxed text-ink/70">
-        The rest of the ledger — a real feed of published theses, a page for each one, a
-        leaderboard — is still ahead. This is the one working door into the record so far;
-        more will open here as they&apos;re built.
+        The rest of the ledger — a real public feed, a page for each thesis, a leaderboard — is
+        still ahead. These are the working doors into the record so far; more will open here as
+        they&apos;re built.
       </p>
     </main>
   );
