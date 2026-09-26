@@ -1,6 +1,4 @@
-// Server Component by default — no 'use client', no hooks. If this page
-// needs interactivity later, that interactivity becomes a small Client
-// Component child, not a reason to convert this whole page.
+
 export default function HomePage() {
   return (
     <main className="mx-auto min-h-screen max-w-2xl px-5 py-10 sm:px-8 sm:py-16">
