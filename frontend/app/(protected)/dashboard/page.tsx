@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getCurrentUserServer } from '@/lib/server-auth';
 import { LogoutButton } from '@/components/auth/logout-button';
@@ -24,11 +25,18 @@ export default async function DashboardPage() {
       <p className="mt-4 max-w-prose text-sm leading-relaxed text-ink/90">
         Signed in as {user.email} · @{user.username}
       </p>
+
+      <Link
+        href="/theses/new"
+        className="mt-8 inline-block rounded-full bg-ink px-5 py-3 text-sm font-medium text-cream transition-opacity hover:opacity-90"
+      >
+        Write a thesis
+      </Link>
+
       <p className="mt-6 max-w-prose text-sm leading-relaxed text-ink/70">
-        This confirms the real session end to end: the cookie set at login, read by
-        proxy.ts to let you in here, and read again on the server to show your actual
-        account. The rest of the ledger — thesis feed, publishing, leaderboard — is
-        the next phase, not this one.
+        The rest of the ledger — a real feed of published theses, a page for each one, a
+        leaderboard — is still ahead. This is the one working door into the record so far;
+        more will open here as they&apos;re built.
       </p>
     </main>
   );

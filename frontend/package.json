@@ -15,7 +15,11 @@
     "next": "^16.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "zustand": "^5.0.2"
+    "zustand": "^5.0.2",
+    "framer-motion": "^13.4.4",
+    "react-hook-form": "^7.89.0",
+    "zod": "^4.6.5",
+    "@hookform/resolvers": "^5.9.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",

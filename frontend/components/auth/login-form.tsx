@@ -2,13 +2,21 @@
 
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useLogin, authErrorMessage } from '@/hooks/use-auth';
 import { GoogleButton } from './google-button';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const login = useLogin();
+  const searchParams = useSearchParams();
+  // proxy.ts sets ?next=<original path> when it redirects someone here
+  // for a protected page. Falls back to the login hook's own default
+  // (/dashboard) when there wasn't one — e.g. someone who just opened
+  // /login directly, not because a protected route sent them here.
+  const next = searchParams.get('next');
+  const login = useLogin(next ?? undefined);
+  const signupHref = next ? `/signup?next=${encodeURIComponent(next)}` : '/signup';
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -80,7 +88,7 @@ export function LoginForm() {
 
       <p className="mt-6 text-center text-sm text-ink/70">
         Don&apos;t have an account?{' '}
-        <Link href="/signup" className="font-medium text-ink underline underline-offset-2">
+        <Link href={signupHref} className="font-medium text-ink underline underline-offset-2">
           Create one
         </Link>
       </p>
