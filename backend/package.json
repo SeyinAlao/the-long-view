@@ -12,7 +12,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "postinstall": "prisma generate",
     "db:seed": "ts-node prisma/seed.ts",
-    "market-data:refresh": "ts-node scripts/refresh-market-data.ts"
+    "market-data:refresh": "ts-node scripts/refresh-market-data.ts",
+    "evaluate:pending": "ts-node scripts/evaluate-pending-theses.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
