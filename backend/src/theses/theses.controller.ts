@@ -10,8 +10,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ThesesService } from './theses.service';
+import { CounterThesesService } from './counter-theses.service';
 import { CreateThesisDto } from './dto/create-thesis.dto';
 import { UpdateThesisDto } from './dto/update-thesis.dto';
+import { CreateCounterThesisDto } from './dto/create-counter-thesis.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -19,7 +21,10 @@ import type { SafeUser } from '../users/users.service';
 
 @Controller('theses')
 export class ThesesController {
-  constructor(private readonly thesesService: ThesesService) {}
+  constructor(
+    private readonly thesesService: ThesesService,
+    private readonly counterThesesService: CounterThesesService,
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Post()
@@ -37,6 +42,12 @@ export class ThesesController {
   @Post(':id/publish')
   publish(@CurrentUser() user: SafeUser, @Param('id') id: string) {
     return this.thesesService.publish(id, user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/counter')
+  counter(@CurrentUser() user: SafeUser, @Param('id') id: string, @Body() dto: CreateCounterThesisDto) {
+    return this.counterThesesService.create(id, user.id, dto);
   }
 
   @UseGuards(JwtAuthGuard)
