@@ -11,7 +11,8 @@
     "test": "jest",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "postinstall": "prisma generate",
-    "db:seed": "ts-node prisma/seed.ts"
+    "db:seed": "ts-node prisma/seed.ts",
+    "market-data:refresh": "ts-node scripts/refresh-market-data.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
@@ -33,7 +34,9 @@
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "cookie-parser": "^1.4.7",
-    "passport-google-oauth20": "^2.0.0"
+    "passport-google-oauth20": "^2.0.0",
+    "@nestjs/schedule": "^6.1.3",
+    "puppeteer": "^25.12.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.0",
