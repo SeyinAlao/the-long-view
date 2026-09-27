@@ -40,6 +40,8 @@ describe('Theses (e2e)', () => {
 
   afterEach(async () => {
     await prisma.thesisMetric.deleteMany({ where: {} });
+    await prisma.counterThesis.deleteMany({ where: {} });
+    await prisma.thesisOutcome.deleteMany({ where: {} });
     await prisma.thesis.deleteMany({ where: {} });
     await prisma.user.deleteMany();
   });
