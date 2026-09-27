@@ -176,6 +176,10 @@ model CounterThesis {
   thesis Thesis @relation(fields: [thesisId], references: [id])
   author User   @relation(fields: [authorId], references: [id])
 
+  // One counter per person per original thesis — enforced here, not
+  // just in the service layer, so a race between two near-simultaneous
+  // requests from the same author can't both slip through.
+  @@unique([thesisId, authorId])
   @@index([thesisId])
 }
 

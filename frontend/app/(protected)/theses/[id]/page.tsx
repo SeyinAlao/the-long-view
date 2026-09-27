@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getCurrentUserServer } from '@/lib/server-auth';
 import { getThesisServer } from '@/lib/server-theses';
+import { CounterThesesSection } from '@/components/theses/counter-theses-section';
 
 // Plain helper, not a component — Date.now() here doesn't trip React's
 // purity rule the way calling it directly inside a component body
@@ -37,6 +38,15 @@ export default async function ThesisDetailPage({ params }: { params: Promise<{ i
   }
 
   const daysRemaining = getDaysRemaining(thesis.publishedAt, thesis.horizonDays);
+  const counterTheses = thesis.counterTheses ?? [];
+  // Logged in, not the original author, and hasn't already countered
+  // this exact thesis (the backend's own unique constraint is the real
+  // enforcement — this just avoids showing the form to someone who'd
+  // immediately hit a 409 on submit).
+  const canCounter =
+    !!user &&
+    user.id !== thesis.author.id &&
+    !counterTheses.some((c) => c.author.id === user.id);
 
   return (
     <main className="mx-auto min-h-screen max-w-2xl px-5 py-10 sm:px-8 sm:py-16">
@@ -139,6 +149,8 @@ export default async function ThesisDetailPage({ params }: { params: Promise<{ i
           )}
         </div>
       )}
+
+      <CounterThesesSection thesisId={thesis.id} counterTheses={counterTheses} canCounter={canCounter} />
     </main>
   );
 }

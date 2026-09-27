@@ -148,7 +148,7 @@ protection is turned on in the GitHub repo settings.
 ## Project status
 
 ```text
-Current status: Phase 2 — done (backend). Phase 3 absorbed into it — see note below.
+Current status: Phase 4 — done. Phase 5 shipped first — see note below.
 ```
 
 ## Roadmap
@@ -156,7 +156,7 @@ Current status: Phase 2 — done (backend). Phase 3 absorbed into it — see not
 ```text
 Phase 0  Repository foundation                 ← done
 Phase 1  Authentication + protected routes      ← done
-Phase 2  Securities + thesis creation           ← done (backend)
+Phase 2  Securities + thesis creation           ← done
 Phase 3  Publishing + immutability              ← done — turned out to be
                                                    inseparable from Phase 2,
                                                    not a distinct phase.
@@ -165,8 +165,21 @@ Phase 3  Publishing + immutability              ← done — turned out to be
                                                    onto thesis creation
                                                    after the fact; it's the
                                                    same mechanism.
-Phase 4  Community (comments, reactions, counter-thesis)
-Phase 5  Market data
+Phase 5  Market data                            ← done, built before Phase 4
+                                                   on purpose — a debate
+                                                   mechanic built on top of
+                                                   a fake reference price
+                                                   would have inherited the
+                                                   same integrity gap it
+                                                   was meant to show off.
+                                                   Real prices had to exist
+                                                   first.
+Phase 4  Community (counter-thesis)             ← done. Comments and
+                                                   reactions from the
+                                                   original scope not yet
+                                                   built — counter-thesis
+                                                   was the part that
+                                                   actually mattered.
 Phase 6  Evaluation + scoring
 Phase 7  Leaderboard + notifications
 Phase 8  Polish + production readiness

@@ -14,6 +14,18 @@ const THESIS_INCLUDE = {
   author: { select: { id: true, username: true, name: true } },
 } as const;
 
+// Only for a single thesis (findOne) — the feed and "my theses" list
+// don't need every counter-thesis's full detail pulled in on every row,
+// so this stays separate from THESIS_INCLUDE rather than bloating every
+// query with it.
+const THESIS_DETAIL_INCLUDE = {
+  ...THESIS_INCLUDE,
+  counterTheses: {
+    orderBy: { publishedAt: 'asc' as const },
+    include: { author: { select: { id: true, username: true, name: true } } },
+  },
+} as const;
+
 @Injectable()
 export class ThesesService {
   constructor(
@@ -126,7 +138,7 @@ export class ThesesService {
   async findOne(id: string, requesterId?: string) {
     const thesis = await this.prisma.thesis.findUnique({
       where: { id },
-      include: THESIS_INCLUDE,
+      include: THESIS_DETAIL_INCLUDE,
     });
 
     if (!thesis) {
