@@ -28,6 +28,7 @@ export interface Thesis {
   status: 'DRAFT' | 'ACTIVE' | 'EVALUATED';
   securityId: string;
   security: { ticker: string; companyName: string };
+  author: { id: string; username: string; name: string };
   targetPrice: string;
   referencePrice: string | null;
   conviction: number;
@@ -64,6 +65,11 @@ export function publishThesis(id: string) {
 
 export function discardThesis(id: string) {
   return apiFetch<{ success: boolean }>(`/theses/${id}`, { method: 'DELETE' });
+}
+
+export function fetchPublishedTheses(ticker?: string) {
+  const params = ticker ? `?ticker=${encodeURIComponent(ticker)}` : '';
+  return apiFetch<Thesis[]>(`/theses${params}`);
 }
 
 export function fetchMyTheses() {

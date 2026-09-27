@@ -53,16 +53,11 @@ export function ThesisRow({ thesis }: ThesisRowProps) {
     </div>
   );
 
-  if (isDraft) {
-    return (
-      <Link href={`/theses/${thesis.id}/edit`} className="block transition-opacity hover:opacity-70">
-        {body}
-      </Link>
-    );
-  }
+  const href = isDraft ? `/theses/${thesis.id}/edit` : `/theses/${thesis.id}`;
 
-  // No detail page yet — a published thesis is real and locked, but
-  // there's nowhere to actually view it on its own yet. Shown here,
-  // not linked, rather than pointing at a page that doesn't exist.
-  return body;
+  return (
+    <Link href={href} className="block transition-opacity hover:opacity-70">
+      {body}
+    </Link>
+  );
 }
