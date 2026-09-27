@@ -24,6 +24,7 @@ const THESIS_DETAIL_INCLUDE = {
     orderBy: { publishedAt: 'asc' as const },
     include: { author: { select: { id: true, username: true, name: true } } },
   },
+  outcome: true,
 } as const;
 
 @Injectable()
