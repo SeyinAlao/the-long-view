@@ -11,3 +11,5 @@ generated/
 backend/prisma/generated/
 .turbo/
 *.tsbuildinfo
+
+.vscode/
