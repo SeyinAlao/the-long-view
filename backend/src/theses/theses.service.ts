@@ -4,7 +4,15 @@ import { SecuritiesService } from '../securities/securities.service';
 import { CreateThesisDto } from './dto/create-thesis.dto';
 import { UpdateThesisDto } from './dto/update-thesis.dto';
 
-const THESIS_INCLUDE = { metrics: true, security: true } as const;
+// select, not include, for author — this is the one place a thesis
+// response touches the User model, and it must never be able to leak
+// passwordHash or googleId by accident the way a bare `include` could
+// if the User model ever grows a new field.
+const THESIS_INCLUDE = {
+  metrics: true,
+  security: true,
+  author: { select: { id: true, username: true, name: true } },
+} as const;
 
 @Injectable()
 export class ThesesService {
