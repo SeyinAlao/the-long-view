@@ -23,6 +23,18 @@ export interface CreateThesisInput {
 // Matches the real shape the backend returns — THESIS_INCLUDE in
 // theses.service.ts always attaches security and metrics, so callers
 // never have to fetch those separately.
+export interface CounterThesis {
+  id: string;
+  targetPrice: string;
+  conviction: number;
+  horizonDays: number;
+  reasoning: string;
+  risks: string | null;
+  assumptions: string | null;
+  publishedAt: string;
+  author: { id: string; username: string; name: string };
+}
+
 export interface Thesis {
   id: string;
   status: 'DRAFT' | 'ACTIVE' | 'EVALUATED';
@@ -41,8 +53,28 @@ export interface Thesis {
   risks: string | null;
   invalidationCondition: string | null;
   metrics: { id: string; label: string; value: string }[];
+  // Only present when fetched via findOne (the detail page) — the feed
+  // and "my theses" list don't fetch this, to avoid over-fetching on
+  // every row of a list.
+  counterTheses?: CounterThesis[];
   publishedAt: string | null;
   createdAt: string;
+}
+
+export interface CreateCounterThesisInput {
+  targetPrice: number;
+  conviction: number;
+  horizonDays: number;
+  reasoning: string;
+  risks?: string;
+  assumptions?: string;
+}
+
+export function createCounterThesis(thesisId: string, input: CreateCounterThesisInput) {
+  return apiFetch<CounterThesis>(`/theses/${thesisId}/counter`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
 }
 
 export function createThesis(input: CreateThesisInput) {
