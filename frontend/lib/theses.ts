@@ -35,6 +35,14 @@ export interface CounterThesis {
   author: { id: string; username: string; name: string };
 }
 
+export interface ThesisOutcome {
+  evaluationPrice: string;
+  targetReturn: string;
+  actualReturn: string;
+  outcomeScore: string;
+  evaluatedAt: string;
+}
+
 export interface Thesis {
   id: string;
   status: 'DRAFT' | 'ACTIVE' | 'EVALUATED';
@@ -57,6 +65,8 @@ export interface Thesis {
   // and "my theses" list don't fetch this, to avoid over-fetching on
   // every row of a list.
   counterTheses?: CounterThesis[];
+  // Only present once status is EVALUATED.
+  outcome?: ThesisOutcome | null;
   publishedAt: string | null;
   createdAt: string;
 }

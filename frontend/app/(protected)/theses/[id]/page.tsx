@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { getCurrentUserServer } from '@/lib/server-auth';
 import { getThesisServer } from '@/lib/server-theses';
 import { CounterThesesSection } from '@/components/theses/counter-theses-section';
+import { ThesisOutcomeCard } from '@/components/theses/thesis-outcome-card';
 
 // Plain helper, not a component — Date.now() here doesn't trip React's
 // purity rule the way calling it directly inside a component body
@@ -88,6 +89,8 @@ export default async function ThesisDetailPage({ params }: { params: Promise<{ i
           </p>
         </div>
       </div>
+
+      {thesis.outcome && <ThesisOutcomeCard outcome={thesis.outcome} />}
 
       {(thesis.bullCase || thesis.baseCase || thesis.bearCase) && (
         <div className="mt-8 space-y-4">
