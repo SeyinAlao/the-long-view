@@ -45,11 +45,17 @@ export default async function DashboardPage() {
         >
           View the feed
         </Link>
+        <Link
+          href="/leaderboard"
+          className="inline-block rounded-full border border-ink/20 px-5 py-3 text-sm font-medium text-ink transition-colors hover:bg-ink/5"
+        >
+          The leaderboard
+        </Link>
       </div>
 
       <p className="mt-6 max-w-prose text-sm leading-relaxed text-ink/70">
-        A leaderboard and the counter-thesis debate view are still ahead. These are the
-        working doors into the record so far; more will open here as they&apos;re built.
+        The leaderboard fills in as published calls reach their horizon and are graded against
+        real prices.
       </p>
     </main>
   );

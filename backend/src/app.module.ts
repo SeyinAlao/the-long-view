@@ -11,11 +11,12 @@ import { SecuritiesModule } from './securities/securities.module';
 import { ThesesModule } from './theses/theses.module';
 import { MarketDataModule } from './market-data/market-data.module';
 import { EvaluationModule } from './evaluation/evaluation.module';
+import { LeaderboardModule } from './leaderboard/leaderboard.module';
 
-// Phase 6: evaluation and scoring. Remaining domain modules (comments,
-// reactions, watchlists, track-record, leaderboard, notifications,
-// admin — spec section 24) still get added one at a time, each as its
-// own module registered here.
+// Phase 7: the leaderboard. Remaining domain modules (comments,
+// reactions, watchlists, track-record, notifications, admin — spec
+// section 24) still get added one at a time, each as its own module
+// registered here.
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -28,6 +29,7 @@ import { EvaluationModule } from './evaluation/evaluation.module';
     ThesesModule,
     MarketDataModule,
     EvaluationModule,
+    LeaderboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

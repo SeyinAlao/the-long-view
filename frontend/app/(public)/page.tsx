@@ -23,7 +23,7 @@ export default function HomePage() {
         counter-thesis, not a comment.
       </p>
 
-      <div className="mt-8 flex gap-3">
+      <div className="mt-8 flex flex-wrap gap-3">
         <Link
           href="/feed"
           className="inline-block rounded-full bg-ink px-5 py-3 text-sm font-medium text-cream transition-opacity hover:opacity-90"
@@ -35,6 +35,12 @@ export default function HomePage() {
           className="inline-block rounded-full border border-ink/20 px-5 py-3 text-sm font-medium text-ink transition-colors hover:bg-ink/5"
         >
           Publish a thesis
+        </Link>
+        <Link
+          href="/leaderboard"
+          className="inline-block rounded-full border border-ink/20 px-5 py-3 text-sm font-medium text-ink transition-colors hover:bg-ink/5"
+        >
+          The leaderboard
         </Link>
       </div>
     </main>
