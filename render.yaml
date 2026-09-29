@@ -1,0 +1,51 @@
+# Render Blueprint for the backend API. Written now, before a Render
+# service exists, so the correct build command lives in version
+# control rather than something typed into a dashboard once and
+# forgotten. This file is inert until a Render service is actually
+# connected to it.
+#
+# Why --include=dev is required at all: Render sets NODE_ENV=production
+# automatically, and npm skips devDependencies whenever NODE_ENV is
+# production - documented, common Render behavior, not a guess. This
+# project's build genuinely needs three devDependencies at build time:
+# prisma (schema generation), @nestjs/cli (nest build) and typescript
+# (compiling .ts to .js). Without --include=dev, all three are missing
+# and the build fails outright.
+services:
+  - type: web
+    name: the-long-view-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install --include=dev && npm run build && npm prune --omit=dev
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Puppeteer's own postinstall otherwise downloads a full Chromium
+      # binary here - nothing on this always-on API ever launches a
+      # browser; that only happens in the scheduled market-data job,
+      # which runs separately (see the deployment plan for where).
+      - key: PUPPETEER_SKIP_DOWNLOAD
+        value: 'true'
+      # Everything below is a secret or environment-specific value -
+      # sync: false means "set this by hand in the Render dashboard",
+      # never committed here.
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CORS_ORIGIN
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CALLBACK_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
