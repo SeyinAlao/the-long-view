@@ -1,0 +1,25 @@
+name: Test NGX reachability
+
+# Manual trigger only - deliberately not on a schedule or on push/PR.
+# This exists to answer exactly one question once: can GitHub's own
+# runners reach NGX's page and get real prices back? Running it
+# automatically would add nothing - the answer won't change run to
+# run the way a market-data refresh's actual data does.
+on:
+  workflow_dispatch:
+
+jobs:
+  test-reachability:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # No PUPPETEER_SKIP_DOWNLOAD here, unlike the main CI workflow -
+      # this run specifically needs a real, working Chromium to test
+      # the real fetch, not skip it.
+      - run: npm install --include=dev --workspace=backend
+      - run: npx ts-node scripts/test-ngx-reachability.ts
+        working-directory: backend
