@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { BACKEND_URL } from './lib/backend-url';
 
 // Next.js 16 renamed middleware.ts to proxy.ts to make the network-
 // boundary role explicit — same behavior, new name and export.
@@ -11,8 +12,6 @@ import type { NextRequest } from 'next/server';
 // having two different places that can disagree about what a valid
 // session is. See docs/decisions/002-cookie-based-jwt-auth.md for why
 // the session lives in a cookie the proxy can actually read.
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
-
 export async function proxy(request: NextRequest) {
   const sessionCookie = request.cookies.get('session_token');
 
@@ -21,7 +20,7 @@ export async function proxy(request: NextRequest) {
   }
 
   try {
-    const meResponse = await fetch(`${API_URL}/auth/me`, {
+    const meResponse = await fetch(`${BACKEND_URL}/auth/me`, {
       headers: { cookie: `session_token=${sessionCookie.value}` },
     });
 

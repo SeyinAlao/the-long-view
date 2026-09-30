@@ -28,6 +28,11 @@ services:
       # which runs separately (see the deployment plan for where).
       - key: PUPPETEER_SKIP_DOWNLOAD
         value: 'true'
+      # The daily jobs run on GitHub Actions, not in this process - a
+      # free instance that sleeps when idle can't be relied on to be
+      # awake when an in-process cron is due.
+      - key: DISABLE_SCHEDULED_JOBS
+        value: 'true'
       # Everything below is a secret or environment-specific value -
       # sync: false means "set this by hand in the Render dashboard",
       # never committed here.
@@ -45,6 +50,7 @@ services:
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
+      # Must be on the FRONTEND's domain: https://<frontend>/api/auth/google/callback
       - key: GOOGLE_CALLBACK_URL
         sync: false
       - key: FRONTEND_URL
