@@ -36,7 +36,7 @@ export function CounterThesesSection({ thesisId, counterTheses, canCounter, sign
 
   return (
     <section className="mt-8">
-      <p className="text-[11px] uppercase tracking-[0.1em] text-terracotta">
+      <p className="text-[11px] uppercase tracking-[0.1em] text-terracotta-dark">
         {counterTheses.length > 0 ? `The debate (${counterTheses.length})` : 'The debate'}
       </p>
 

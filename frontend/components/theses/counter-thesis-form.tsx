@@ -61,7 +61,7 @@ export function CounterThesisForm({ thesisId, onPublished }: CounterThesisFormPr
           {...register('reasoning')}
         />
         {errors.reasoning && (
-          <p className="mt-1 text-xs text-terracotta" role="alert">
+          <p className="mt-1 text-xs text-terracotta-dark" role="alert">
             {errors.reasoning.message}
           </p>
         )}
@@ -80,12 +80,12 @@ export function CounterThesisForm({ thesisId, onPublished }: CounterThesisFormPr
             type="number"
             step="0.01"
             min="0.01"
-            className="no-spinner w-full rounded-md border border-ink/20 bg-cream py-2 pl-7 pr-3 text-sm text-ink outline-none focus:border-brass"
+            className="no-spinner w-full rounded-md border border-ink/20 bg-cream py-2 pl-7 pr-3 text-sm text-ink focus:border-brass"
             {...register('targetPrice', { valueAsNumber: true })}
           />
         </div>
         {errors.targetPrice && (
-          <p className="mt-1 text-xs text-terracotta" role="alert">
+          <p className="mt-1 text-xs text-terracotta-dark" role="alert">
             {errors.targetPrice.message}
           </p>
         )}
@@ -110,7 +110,7 @@ export function CounterThesisForm({ thesisId, onPublished }: CounterThesisFormPr
       </div>
 
       {publish.isError && (
-        <p className="text-sm text-terracotta" role="alert">
+        <p className="text-sm text-terracotta-dark" role="alert">
           {apiErrorMessage(publish.error)}
         </p>
       )}
@@ -119,7 +119,7 @@ export function CounterThesisForm({ thesisId, onPublished }: CounterThesisFormPr
         type="submit"
         whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
         disabled={publish.isPending}
-        className="rounded-full bg-terracotta px-5 py-3 text-sm font-medium text-cream transition-opacity hover:opacity-90 disabled:opacity-40"
+        className="rounded-full bg-terracotta-dark px-5 py-3 text-sm font-medium text-cream transition-opacity hover:opacity-90 disabled:opacity-40"
       >
         {publish.isPending ? 'Publishing…' : 'Publish counter-thesis'}
       </motion.button>

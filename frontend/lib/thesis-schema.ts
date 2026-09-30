@@ -10,7 +10,9 @@ export const thesisMetricSchema = z.object({
 });
 
 export const thesisFormSchema = z.object({
-  ticker: z.string().min(1, 'Choose a security.'),
+  // `error` covers the field being empty (never picked); .min covers an
+  // empty string. Both should read the same to the person filling it in.
+  ticker: z.string({ error: 'Choose a security.' }).min(1, 'Choose a security.'),
   statement: z
     .string()
     .min(80, 'At least 80 characters.')
@@ -22,7 +24,10 @@ export const thesisFormSchema = z.object({
   // instead; targetPrice's <input> converts its own string value via
   // valueAsNumber, conviction/horizonDays are already numbers by the
   // time their Controllers call onChange.
-  targetPrice: z.number().positive('Enter a target price.'),
+  // An empty number field reaches Zod as NaN - a type error, not "too
+  // small" - so without `error` here people saw raw validator text:
+  // "Invalid input: expected number, received NaN".
+  targetPrice: z.number({ error: 'Enter a target price.' }).positive('Enter a target price.'),
   conviction: z.number().int().min(1).max(10),
   horizonDays: z.number().int().min(1).max(1825),
   bullCase: z.string().max(2000).optional().or(z.literal('')),
@@ -40,7 +45,7 @@ export type ThesisFormValues = z.infer<typeof thesisFormSchema>;
 // thesisFormSchema above about keeping these two shapes in sync
 // deliberately, not coincidentally.
 export const counterThesisFormSchema = z.object({
-  targetPrice: z.number().positive('Enter a target price.'),
+  targetPrice: z.number({ error: 'Enter a target price.' }).positive('Enter a target price.'),
   conviction: z.number().int().min(1).max(10),
   horizonDays: z.number().int().min(1).max(1825),
   reasoning: z

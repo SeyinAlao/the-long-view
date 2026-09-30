@@ -1,12 +1,20 @@
 @import "tailwindcss";
 
+/* Contrast rule (WCAG 2.2 AA, measured against cream):
+   - any colour used for TEXT, or as a fill behind text: at least 4.5:1
+   - focus outlines and other meaningful non-text marks: at least 3:1
+   `brass` and `terracotta` are decoration-only (slider fill, hairline
+   borders); their `-dark` pairs are the ones to use for text.
+   See docs/decisions/008-colour-contrast.md. */
 @theme {
   --color-cream: #f7f4ef;
-  --color-ink: #211d17;
-  --color-muted: #6b6459;
-  --color-brass: #c8a455;
-  --color-brass-dark: #8a6d2e;
-  --color-terracotta: #c8622a;
+  --color-ink: #211d17; /* 15.95:1 */
+  --color-muted: #6b6459; /* 5.52:1 */
+  --color-brass: #c8a455; /* 2.15:1 - decoration only */
+  --color-brass-dark: #876a2d; /* 4.64:1 */
+  --color-terracotta: #c8622a; /* 3.66:1 - decoration only */
+  --color-terracotta-dark: #ad5524; /* 4.67:1 */
+  --color-focus: #a38645; /* 3.16:1 - keyboard focus outline */
   --color-hairline: #211d17;
 
   --font-serif: var(--font-instrument-serif), ui-serif, Georgia, serif;
@@ -24,6 +32,17 @@
   h3,
   .font-display {
     font-family: var(--font-serif);
+  }
+
+  /* One visible keyboard-focus outline for every interactive element,
+     defined once here rather than per component. :focus-visible means
+     mouse clicks on buttons and links don't show it, but keyboard users
+     always do - and text fields show it on click too, since that's
+     where typing will go. :where() keeps specificity at zero, so a
+     component can still style its own focus deliberately. */
+  :where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
   }
 }
 
@@ -52,7 +71,6 @@ input[type='range'].slider-brass {
     color-mix(in srgb, var(--color-ink) 15%, transparent) var(--fill, 50%),
     color-mix(in srgb, var(--color-ink) 15%, transparent) 100%
   );
-  outline: none;
 }
 input[type='range'].slider-brass::-webkit-slider-thumb {
   -webkit-appearance: none;
