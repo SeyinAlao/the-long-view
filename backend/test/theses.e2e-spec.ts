@@ -105,6 +105,53 @@ describe('Theses (e2e)', () => {
       .expect(403);
   });
 
+  // The exact request the edit form sends: the full payload, ticker
+  // included. Every save of an existing draft used to fail with
+  // "property ticker should not exist".
+  it('saving an existing draft with the full form payload works, and can change its company', async () => {
+    const cookie = await registerAndGetCookie('editor@example.com', 'editor');
+    const created = await request(app.getHttpServer())
+      .post('/theses')
+      .set('Cookie', cookie)
+      .send({ ...validThesisBody, metrics: [{ label: 'P/E', value: '12x' }] })
+      .expect(201);
+
+    const saved = await request(app.getHttpServer())
+      .patch(`/theses/${created.body.id}`)
+      .set('Cookie', cookie)
+      .send({ ...validThesisBody, ticker: 'ZENITHBANK', conviction: 6, metrics: [{ label: 'P/E', value: '12x' }] })
+      .expect(200);
+
+    expect(saved.body.security.ticker).toBe('ZENITHBANK');
+    expect(saved.body.conviction).toBe(6);
+    expect(saved.body.status).toBe('DRAFT');
+  });
+
+  it('an unknown ticker fails the whole save and leaves the draft exactly as it was', async () => {
+    const cookie = await registerAndGetCookie('editor2@example.com', 'editor2');
+    const created = await request(app.getHttpServer())
+      .post('/theses')
+      .set('Cookie', cookie)
+      .send({ ...validThesisBody, metrics: [{ label: 'P/E', value: '12x' }] })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .patch(`/theses/${created.body.id}`)
+      .set('Cookie', cookie)
+      .send({ ...validThesisBody, ticker: 'NOTAREALTICKER', conviction: 2, metrics: [] })
+      .expect(404);
+
+    const after = await request(app.getHttpServer())
+      .get(`/theses/${created.body.id}`)
+      .set('Cookie', cookie)
+      .expect(200);
+
+    expect(after.body.security.ticker).toBe('DANGCEM');
+    expect(after.body.conviction).toBe(validThesisBody.conviction);
+    // The metrics survived: the lookup failed before anything was deleted.
+    expect(after.body.metrics).toHaveLength(1);
+  });
+
   it('refuses to let someone publish or edit a draft that belongs to someone else', async () => {
     const ownerCookie = await registerAndGetCookie('owner2@example.com', 'owner2');
     const intruderCookie = await registerAndGetCookie('intruder2@example.com', 'intruder2');
