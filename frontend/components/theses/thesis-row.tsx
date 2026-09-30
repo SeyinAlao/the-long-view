@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { MouseEvent } from 'react';
 import { useDiscardDraft } from '@/hooks/use-theses';
 import type { Thesis } from '@/lib/theses';
+import { formatDate } from '@/lib/format-date';
 
 interface ThesisRowProps {
   thesis: Thesis;
@@ -34,7 +35,7 @@ export function ThesisRow({ thesis }: ThesisRowProps) {
             {isDraft
               ? 'Draft'
               : thesis.publishedAt
-                ? new Date(thesis.publishedAt).toLocaleDateString()
+                ? formatDate(thesis.publishedAt)
                 : ''}
           </p>
         </div>

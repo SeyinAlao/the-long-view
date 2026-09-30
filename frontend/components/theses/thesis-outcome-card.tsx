@@ -1,4 +1,5 @@
 import type { ThesisOutcome } from '@/lib/theses';
+import { formatDate } from '@/lib/format-date';
 
 interface ThesisOutcomeCardProps {
   outcome: ThesisOutcome;
@@ -53,7 +54,7 @@ export function ThesisOutcomeCard({ outcome }: ThesisOutcomeCardProps) {
         </div>
       </div>
       <p className="mt-3 text-xs text-muted">
-        Evaluated {new Date(outcome.evaluatedAt).toLocaleDateString()}
+        Evaluated {formatDate(outcome.evaluatedAt)}
       </p>
     </div>
   );
