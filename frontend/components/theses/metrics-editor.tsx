@@ -68,7 +68,7 @@ export function MetricsEditor({ metrics, onChange }: MetricsEditorProps) {
                 value={metric.label}
                 onChange={(e) => updateMetric(metric.id, 'label', e.target.value)}
                 maxLength={60}
-                className="w-1/2 rounded-md border border-ink/20 bg-cream px-3 py-2 text-sm text-ink outline-none focus:border-brass"
+                className="w-1/2 rounded-md border border-ink/20 bg-cream px-3 py-2 text-sm text-ink focus:border-brass"
               />
               <input
                 aria-label="Metric value"
@@ -76,13 +76,13 @@ export function MetricsEditor({ metrics, onChange }: MetricsEditorProps) {
                 value={metric.value}
                 onChange={(e) => updateMetric(metric.id, 'value', e.target.value)}
                 maxLength={120}
-                className="w-1/2 rounded-md border border-ink/20 bg-cream px-3 py-2 text-sm text-ink outline-none focus:border-brass"
+                className="w-1/2 rounded-md border border-ink/20 bg-cream px-3 py-2 text-sm text-ink focus:border-brass"
               />
               <button
                 type="button"
                 onClick={() => removeMetric(metric.id)}
                 aria-label="Remove this metric"
-                className="shrink-0 px-1 text-muted hover:text-terracotta"
+                className="shrink-0 px-1 text-muted hover:text-terracotta-dark"
               >
                 <i className="bx bx-x text-lg" aria-hidden="true" />
               </button>

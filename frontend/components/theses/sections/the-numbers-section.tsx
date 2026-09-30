@@ -30,12 +30,12 @@ export function TheNumbersSection({ control, register, errors }: TheNumbersSecti
               step="0.01"
               min="0.01"
               placeholder="1,350"
-              className="no-spinner w-full rounded-md border border-ink/20 bg-cream py-2 pl-7 pr-3 text-sm text-ink outline-none focus:border-brass"
+              className="no-spinner w-full rounded-md border border-ink/20 bg-cream py-2 pl-7 pr-3 text-sm text-ink focus:border-brass"
               {...register('targetPrice', { valueAsNumber: true })}
             />
           </div>
           {errors.targetPrice && (
-            <p className="mt-1 text-xs text-terracotta" role="alert">
+            <p className="mt-1 text-xs text-terracotta-dark" role="alert">
               {errors.targetPrice.message}
             </p>
           )}

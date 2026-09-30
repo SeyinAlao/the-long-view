@@ -38,7 +38,7 @@ export function LeaderboardTable({ entries }: LeaderboardTableProps) {
             </p>
           </div>
           <span
-            className={`text-right font-mono text-sm ${entry.totalScore < 0 ? 'text-terracotta' : 'text-brass-dark'}`}
+            className={`text-right font-mono text-sm ${entry.totalScore < 0 ? 'text-terracotta-dark' : 'text-brass-dark'}`}
           >
             {formatScore(entry.totalScore)}
           </span>

@@ -25,7 +25,7 @@ export function ThesisFormActions({
   return (
     <>
       {isError && (
-        <p className="text-sm text-terracotta" role="alert">
+        <p className="text-sm text-terracotta-dark" role="alert">
           {apiErrorMessage(error)}
         </p>
       )}

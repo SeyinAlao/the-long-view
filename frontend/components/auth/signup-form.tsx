@@ -53,7 +53,7 @@ export function SignupForm() {
             autoComplete="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-1 w-full rounded-md border border-ink/20 bg-cream px-3 py-2 text-sm text-ink outline-none focus:border-brass"
+            className="mt-1 w-full rounded-md border border-ink/20 bg-cream px-3 py-2 text-sm text-ink focus:border-brass"
           />
         </div>
         <div>
@@ -71,7 +71,7 @@ export function SignupForm() {
             autoComplete="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="mt-1 w-full rounded-md border border-ink/20 bg-cream px-3 py-2 text-sm text-ink outline-none focus:border-brass"
+            className="mt-1 w-full rounded-md border border-ink/20 bg-cream px-3 py-2 text-sm text-ink focus:border-brass"
           />
         </div>
         <div>
@@ -85,7 +85,7 @@ export function SignupForm() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-md border border-ink/20 bg-cream px-3 py-2 text-sm text-ink outline-none focus:border-brass"
+            className="mt-1 w-full rounded-md border border-ink/20 bg-cream px-3 py-2 text-sm text-ink focus:border-brass"
           />
         </div>
         <div>
@@ -100,13 +100,13 @@ export function SignupForm() {
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-md border border-ink/20 bg-cream px-3 py-2 text-sm text-ink outline-none focus:border-brass"
+            className="mt-1 w-full rounded-md border border-ink/20 bg-cream px-3 py-2 text-sm text-ink focus:border-brass"
           />
           <p className="mt-1 text-xs text-muted">At least 8 characters.</p>
         </div>
 
         {register.isError && (
-          <p className="text-sm text-terracotta" role="alert">
+          <p className="text-sm text-terracotta-dark" role="alert">
             {authErrorMessage(register.error)}
           </p>
         )}

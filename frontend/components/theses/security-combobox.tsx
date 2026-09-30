@@ -81,12 +81,12 @@ export function SecurityCombobox({ value, onChange, error }: SecurityComboboxPro
         onKeyDown={handleKeyDown}
         onBlur={() => setTimeout(() => setIsOpen(false), 150)}
         className={cn(
-          'mt-1 w-full rounded-md border bg-cream px-3 py-2 text-sm text-ink outline-none focus:border-brass',
+          'mt-1 w-full rounded-md border bg-cream px-3 py-2 text-sm text-ink focus:border-brass',
           error ? 'border-terracotta' : 'border-ink/20',
         )}
       />
       {error && (
-        <p className="mt-1 text-xs text-terracotta" role="alert">
+        <p className="mt-1 text-xs text-terracotta-dark" role="alert">
           {error}
         </p>
       )}

@@ -32,7 +32,7 @@ export function ThesisOutcomeCard({ outcome }: ThesisOutcomeCardProps) {
         <span
           className={
             verdict.tone === 'terracotta'
-              ? 'text-sm font-medium text-terracotta'
+              ? 'text-sm font-medium text-terracotta-dark'
               : 'text-sm font-medium text-brass-dark'
           }
         >

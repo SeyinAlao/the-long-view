@@ -73,7 +73,7 @@ export function TheCallSection({ control, register, errors, initialTicker }: The
             {statement.length} characters. Minimum {STATEMENT_MIN}.
           </p>
           {errors.statement && (
-            <p className="mt-1 text-xs text-terracotta" role="alert">
+            <p className="mt-1 text-xs text-terracotta-dark" role="alert">
               {errors.statement.message}
             </p>
           )}
