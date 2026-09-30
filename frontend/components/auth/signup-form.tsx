@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useRegister, authErrorMessage } from '@/hooks/use-auth';
 import { GoogleButton } from './google-button';
+import { safeNextPath } from '@/lib/safe-next-path';
 
 export function SignupForm() {
   const [email, setEmail] = useState('');
@@ -12,7 +13,8 @@ export function SignupForm() {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const searchParams = useSearchParams();
-  const next = searchParams.get('next');
+  // Only ever a path on this site - see safeNextPath.
+  const next = safeNextPath(searchParams.get('next'));
   const register = useRegister(next ?? undefined);
   const loginHref = next ? `/login?next=${encodeURIComponent(next)}` : '/login';
 
