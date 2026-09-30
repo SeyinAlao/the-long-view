@@ -3,6 +3,7 @@ import { Instrument_Serif, DM_Mono } from 'next/font/google';
 import 'boxicons/css/boxicons.min.css';
 import './globals.css';
 import { QueryProvider } from '@/components/providers/query-provider';
+import { SiteHeader } from '@/components/site-header';
 
 const instrumentSerif = Instrument_Serif({
   subsets: ['latin'],
@@ -29,7 +30,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* All client-side state (TanStack Query cache, later Zustand
             stores) is scoped inside this provider tree. The root layout
             itself stays a Server Component. */}
-        <QueryProvider>{children}</QueryProvider>
+        <QueryProvider>
+          <SiteHeader />
+          {children}
+        </QueryProvider>
       </body>
     </html>
   );

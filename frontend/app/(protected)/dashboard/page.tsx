@@ -1,7 +1,5 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getCurrentUserServer } from '@/lib/server-auth';
-import { LogoutButton } from '@/components/auth/logout-button';
 
 export default async function DashboardPage() {
   const user = await getCurrentUserServer();
@@ -15,45 +13,15 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-2xl px-5 py-10 sm:px-8 sm:py-16">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.1em] text-muted">Your desk</p>
-          <h1 className="font-display mt-2 text-3xl">Welcome, {user.name}.</h1>
-        </div>
-        <LogoutButton />
-      </div>
-      <p className="mt-4 max-w-prose text-sm leading-relaxed text-ink/90">
-        Signed in as {user.email} · @{user.username}
-      </p>
+      <p className="text-[11px] uppercase tracking-[0.1em] text-muted">Your desk</p>
+      <h1 className="font-display mt-2 text-3xl">Welcome, {user.name}.</h1>
+      {/* Email only: the username is already in the header. The email is
+          the one detail shown nowhere else, and it's what tells you which
+          account you're in when you switch between them. The page used to
+          repeat the header's links here as buttons too. */}
+      <p className="mt-4 max-w-prose text-sm leading-relaxed text-ink/90">Signed in as {user.email}</p>
 
-      <div className="mt-8 flex flex-wrap gap-3">
-        <Link
-          href="/theses/new"
-          className="inline-block rounded-full bg-ink px-5 py-3 text-sm font-medium text-cream transition-opacity hover:opacity-90"
-        >
-          Write a thesis
-        </Link>
-        <Link
-          href="/theses/mine"
-          className="inline-block rounded-full border border-ink/20 px-5 py-3 text-sm font-medium text-ink transition-colors hover:bg-ink/5"
-        >
-          My research
-        </Link>
-        <Link
-          href="/feed"
-          className="inline-block rounded-full border border-ink/20 px-5 py-3 text-sm font-medium text-ink transition-colors hover:bg-ink/5"
-        >
-          View the feed
-        </Link>
-        <Link
-          href="/leaderboard"
-          className="inline-block rounded-full border border-ink/20 px-5 py-3 text-sm font-medium text-ink transition-colors hover:bg-ink/5"
-        >
-          The leaderboard
-        </Link>
-      </div>
-
-      <p className="mt-6 max-w-prose text-sm leading-relaxed text-ink/70">
+      <p className="mt-4 max-w-prose text-sm leading-relaxed text-ink/70">
         The leaderboard fills in as published calls reach their horizon and are graded against
         real prices.
       </p>
