@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { CounterThesisCard } from './counter-thesis-card';
 import { CounterThesisForm } from './counter-thesis-form';
@@ -11,6 +12,9 @@ interface CounterThesesSectionProps {
   thesisId: string;
   counterTheses: CounterThesis[];
   canCounter: boolean;
+  // Set only for someone not signed in: where to sign in and come back
+  // to this same thesis, ready to respond.
+  signInHref?: string;
 }
 
 // The actual debate view — the original call already rendered above
@@ -18,7 +22,7 @@ interface CounterThesesSectionProps {
 // it, in the order they did. canCounter is computed server-side by the
 // page (logged in, not the original author, hasn't already countered)
 // so this component doesn't have to re-derive eligibility itself.
-export function CounterThesesSection({ thesisId, counterTheses, canCounter }: CounterThesesSectionProps) {
+export function CounterThesesSection({ thesisId, counterTheses, canCounter, signInHref }: CounterThesesSectionProps) {
   const router = useRouter();
   const [justPublished, setJustPublished] = useState(false);
 
@@ -52,6 +56,16 @@ export function CounterThesesSection({ thesisId, counterTheses, canCounter }: Co
             <CounterThesisForm thesisId={thesisId} onPublished={handlePublished} />
           </CollapsibleSection>
         </div>
+      )}
+
+      {signInHref && (
+        <p className="mt-6 text-sm text-ink/80">
+          Disagree?{' '}
+          <Link href={signInHref} className="font-medium text-ink underline underline-offset-4">
+            Sign in to publish a counter-thesis
+          </Link>
+          .
+        </p>
       )}
     </section>
   );
