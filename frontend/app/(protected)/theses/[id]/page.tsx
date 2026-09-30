@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getCurrentUserServer } from '@/lib/server-auth';
 import { getThesisServer } from '@/lib/server-theses';
@@ -51,15 +50,7 @@ export default async function ThesisDetailPage({ params }: { params: Promise<{ i
 
   return (
     <main className="mx-auto min-h-screen max-w-2xl px-5 py-10 sm:px-8 sm:py-16">
-      <div className="flex items-baseline justify-between">
-        <span className="font-display text-lg tracking-[0.08em]">THE LONG VIEW</span>
-        <Link href="/feed" className="text-[11px] text-muted hover:underline">
-          Back to the ledger
-        </Link>
-      </div>
-      <div className="mt-2 border-t border-ink/20" />
-
-      <p className="mt-10 text-[11px] uppercase tracking-[0.1em] text-muted">
+      <p className="text-[11px] uppercase tracking-[0.1em] text-muted">
         {thesis.security.ticker} · by @{thesis.author.username}
       </p>
       <h1 className="font-display mt-2 text-3xl leading-tight sm:text-4xl">{thesis.security.companyName}</h1>
@@ -153,7 +144,12 @@ export default async function ThesisDetailPage({ params }: { params: Promise<{ i
         </div>
       )}
 
-      <CounterThesesSection thesisId={thesis.id} counterTheses={counterTheses} canCounter={canCounter} />
+      <CounterThesesSection
+        thesisId={thesis.id}
+        counterTheses={counterTheses}
+        canCounter={canCounter}
+        signInHref={user ? undefined : `/login?next=${encodeURIComponent(`/theses/${thesis.id}`)}`}
+      />
     </main>
   );
 }

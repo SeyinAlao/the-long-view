@@ -1,4 +1,5 @@
 import type { CounterThesis } from '@/lib/theses';
+import { formatDate } from '@/lib/format-date';
 
 interface CounterThesisCardProps {
   counter: CounterThesis;
@@ -10,7 +11,7 @@ export function CounterThesisCard({ counter }: CounterThesisCardProps) {
       <div className="flex items-baseline justify-between gap-4">
         <p className="text-sm font-medium text-ink">@{counter.author.username}</p>
         <span className="shrink-0 text-xs text-muted">
-          {new Date(counter.publishedAt).toLocaleDateString()}
+          {formatDate(counter.publishedAt)}
         </span>
       </div>
       <p className="mt-2 text-sm leading-relaxed text-ink/90">{counter.reasoning}</p>

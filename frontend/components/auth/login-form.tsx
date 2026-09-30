@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useLogin, authErrorMessage } from '@/hooks/use-auth';
 import { GoogleButton } from './google-button';
+import { safeNextPath } from '@/lib/safe-next-path';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
@@ -14,7 +15,8 @@ export function LoginForm() {
   // for a protected page. Falls back to the login hook's own default
   // (/dashboard) when there wasn't one — e.g. someone who just opened
   // /login directly, not because a protected route sent them here.
-  const next = searchParams.get('next');
+  // Only ever a path on this site - see safeNextPath.
+  const next = safeNextPath(searchParams.get('next'));
   const login = useLogin(next ?? undefined);
   const signupHref = next ? `/signup?next=${encodeURIComponent(next)}` : '/signup';
 
