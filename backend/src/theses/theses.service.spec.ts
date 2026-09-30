@@ -46,6 +46,42 @@ describe('ThesesService', () => {
     });
   });
 
+  describe('changing the company on a draft', () => {
+    it('resolves the new ticker and saves the new security', async () => {
+      prisma.thesis.findUnique.mockResolvedValue(draftThesis);
+      securities.findByTicker.mockResolvedValue({ id: 'sec_2', ticker: 'MTNN' });
+
+      await service.updateDraft('thesis_1', 'author_1', { ticker: 'MTNN' });
+
+      expect(securities.findByTicker).toHaveBeenCalledWith('MTNN');
+      expect(prisma.thesis.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ securityId: 'sec_2' }) }),
+      );
+    });
+
+    it('with an unknown ticker, fails before deleting metrics or writing anything', async () => {
+      prisma.thesis.findUnique.mockResolvedValue(draftThesis);
+      securities.findByTicker.mockRejectedValue(new NotFoundException('No security listed with ticker NOPE'));
+
+      await expect(
+        service.updateDraft('thesis_1', 'author_1', { ticker: 'NOPE', metrics: [] }),
+      ).rejects.toThrow(NotFoundException);
+      expect(prisma.thesisMetric.deleteMany).not.toHaveBeenCalled();
+      expect(prisma.thesis.update).not.toHaveBeenCalled();
+    });
+
+    it('leaves the company alone when no ticker is sent', async () => {
+      prisma.thesis.findUnique.mockResolvedValue(draftThesis);
+
+      await service.updateDraft('thesis_1', 'author_1', { conviction: 7 });
+
+      expect(securities.findByTicker).not.toHaveBeenCalled();
+      expect(prisma.thesis.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ securityId: undefined }) }),
+      );
+    });
+  });
+
   describe('ownership', () => {
     it('refuses to let someone edit a draft that belongs to someone else', async () => {
       prisma.thesis.findUnique.mockResolvedValue(draftThesis);

@@ -62,6 +62,11 @@ export class ThesesService {
   async updateDraft(id: string, authorId: string, dto: UpdateThesisDto) {
     await this.getOwnedDraftOrThrow(id, authorId);
 
+    // Resolved before anything below is written or deleted: an unknown
+    // ticker must fail the whole save with a 404, not fail halfway
+    // through with this draft's metrics already deleted.
+    const securityId = dto.ticker ? (await this.securitiesService.findByTicker(dto.ticker)).id : undefined;
+
     // Metrics are a full replace, not a merge — simplest correct
     // behavior for a short list edited through a form, and it avoids
     // any ambiguity about which existing row a partial update refers to.
@@ -72,6 +77,7 @@ export class ThesesService {
     return this.prisma.thesis.update({
       where: { id },
       data: {
+        securityId,
         targetPrice: dto.targetPrice,
         conviction: dto.conviction,
         horizonDays: dto.horizonDays,
