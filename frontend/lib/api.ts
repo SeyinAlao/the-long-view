@@ -1,8 +1,17 @@
+import { BACKEND_URL } from './backend-url';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+// In the browser, always this app's own /api path (forwarded to the
+// backend by next.config's rewrites), so the session cookie stays
+// first-party. On the server - Server Components like the feed - there
+// is no browser origin to be relative to, so it calls the backend
+// directly. Decided per call, not once at import, since this module is
+// shared by both.
+function apiBase(): string {
+  return typeof window === 'undefined' ? BACKEND_URL : '/api';
+}
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${apiBase()}${path}`, {
     ...init,
     credentials: 'include',
     headers: {

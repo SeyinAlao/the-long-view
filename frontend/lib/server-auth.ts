@@ -1,7 +1,6 @@
 import { cookies } from 'next/headers';
 import type { SafeUser } from './auth';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+import { BACKEND_URL } from './backend-url';
 
 export async function getCurrentUserServer(): Promise<SafeUser | null> {
   const cookieStore = await cookies();
@@ -12,7 +11,7 @@ export async function getCurrentUserServer(): Promise<SafeUser | null> {
   }
 
   try {
-    const res = await fetch(`${API_URL}/auth/me`, {
+    const res = await fetch(`${BACKEND_URL}/auth/me`, {
       headers: { cookie: `session_token=${sessionCookie.value}` },
       cache: 'no-store',
     });

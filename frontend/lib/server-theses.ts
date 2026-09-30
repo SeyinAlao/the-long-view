@@ -1,7 +1,6 @@
 import { cookies } from 'next/headers';
 import type { Thesis } from './theses';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+import { BACKEND_URL } from './backend-url';
 
 // Server Component-only, same pattern as getCurrentUserServer in
 // lib/server-auth.ts — reads the incoming request's session cookie
@@ -13,7 +12,7 @@ export async function getThesisServer(id: string): Promise<Thesis | null> {
   const sessionCookie = cookieStore.get('session_token');
 
   try {
-    const res = await fetch(`${API_URL}/theses/${id}`, {
+    const res = await fetch(`${BACKEND_URL}/theses/${id}`, {
       headers: sessionCookie ? { cookie: `session_token=${sessionCookie.value}` } : {},
       cache: 'no-store',
     });
