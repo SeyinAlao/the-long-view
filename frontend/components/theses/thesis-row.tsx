@@ -45,7 +45,7 @@ export function ThesisRow({ thesis }: ThesisRowProps) {
             onClick={handleDiscard}
             disabled={discard.isPending}
             aria-label="Discard this draft"
-            className="text-muted transition-colors hover:text-terracotta"
+            className="inline-flex min-h-8 min-w-8 items-center justify-center rounded-full text-muted transition-colors hover:text-terracotta-dark"
           >
             <i className="bx bx-trash text-base" aria-hidden="true" />
           </button>
