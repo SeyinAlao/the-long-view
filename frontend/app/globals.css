@@ -112,3 +112,20 @@ input.no-spinner {
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
+/* The "still loading" line on loading screens: invisible for the first 8
+   seconds, then fades in. Pure CSS, so it works before any JavaScript
+   has loaded - the exact moment a slow first load needs it. Under
+   prefers-reduced-motion the fade is instant; the delay still applies. */
+@layer components {
+  .slow-load-notice {
+    opacity: 0;
+    animation: slow-load-reveal 0.4s ease-out 8s forwards;
+  }
+}
+
+@keyframes slow-load-reveal {
+  to {
+    opacity: 1;
+  }
+}
