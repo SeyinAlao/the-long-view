@@ -16,12 +16,28 @@ services:
     name: the-long-view-api
     runtime: node
     plan: free
-    rootDir: backend
-    buildCommand: npm install --include=dev && npm run build && npm prune --omit=dev
-    startCommand: npm run start
+    # No rootDir: this is an npm workspaces monorepo, so installs run from
+    # the repo root (where the lockfile is) and every command is scoped
+    # with --workspace=backend. That's the sequence that was actually
+    # tested - install, build, prune, start.
+    buildCommand: npm install --include=dev --workspace=backend && npm run build --workspace=backend && npm prune --omit=dev
+    startCommand: npm run start --workspace=backend
+    # Without rootDir, every commit would rebuild the API - including
+    # frontend-only changes. Only rebuild when something the API depends
+    # on changes. The lockfile belongs here: a dependency bump changes
+    # what gets installed.
+    buildFilter:
+      paths:
+        - backend/**
+        - package.json
+        - package-lock.json
     envVars:
       - key: NODE_ENV
         value: production
+      # Match CI, which tests on Node 22. Render's default for new
+      # services is Node 24, which nothing here has been tested on.
+      - key: NODE_VERSION
+        value: '22'
       # Puppeteer's own postinstall otherwise downloads a full Chromium
       # binary here - nothing on this always-on API ever launches a
       # browser; that only happens in the scheduled market-data job,
