@@ -16,6 +16,11 @@ services:
     name: the-long-view-api
     runtime: node
     plan: free
+    # Same place as the database: Neon's us-east-2 is AWS Ohio. Every API
+    # request makes several database queries, so a cross-country hop on
+    # each one adds up fast. Render's default is oregon, and a service's
+    # region can't be changed after it's created.
+    region: ohio
     # No rootDir: this is an npm workspaces monorepo, so installs run from
     # the repo root (where the lockfile is) and every command is scoped
     # with --workspace=backend. That's the sequence that was actually
