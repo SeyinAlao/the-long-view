@@ -8,8 +8,15 @@ const linkClass = 'text-ink/80 underline-offset-4 hover:text-ink hover:underline
 const activeClass = 'text-ink underline underline-offset-4';
 // Slightly smaller below the sm breakpoint, so the wordmark and the
 // button still share one line on a 320px-wide phone.
-const pillClass =
-  'shrink-0 whitespace-nowrap rounded-full bg-ink px-3 py-1.5 text-[13px] font-medium text-cream transition-opacity hover:opacity-90 sm:px-4 sm:py-2 sm:text-sm';
+// Shape and colour are kept apart so the loading placeholder can reuse
+// the exact shape: it renders the same text, invisibly, so it is the
+// button's size by construction - no guessed pixel values to drift.
+// Slightly smaller below sm, so the wordmark and the button still share
+// one line on a 320px-wide phone.
+const pillShape =
+  'shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-medium sm:px-4 sm:py-2 sm:text-sm';
+const pillClass = `${pillShape} bg-ink text-cream transition-opacity hover:opacity-90`;
+const placeholder = 'animate-pulse bg-ink/10 text-transparent select-none';
 
 // The one header on every page: the way home, the way around, and
 // sign-in / sign-out from anywhere.
@@ -20,9 +27,11 @@ const pillClass =
 //
 // Who's signed in is checked in the browser after the page loads rather
 // than on the server, so a public page like the homepage stays fast even
-// when the backend is asleep. Until that answer arrives, the account
-// parts render nothing at all - never a "Sign in" that flashes and then
-// turns into a username.
+// when the backend is asleep. Until that answer arrives - up to a minute
+// if the API is waking up - the account parts show pulsing placeholders
+// of the same size: never a "Sign in" that flashes and then turns into a
+// username, and never a header that looks finished but has parts
+// missing.
 export function SiteHeader() {
   const pathname = usePathname();
   const currentUser = useCurrentUser();
@@ -54,16 +63,26 @@ export function SiteHeader() {
         <Link href="/" className="whitespace-nowrap font-display text-base tracking-[0.08em] text-ink sm:text-lg">
           THE LONG VIEW
         </Link>
-        {authKnown && (
+        {authKnown ? (
           <Link href="/theses/new" className={pillClass}>
             {user ? 'Write a thesis' : 'Publish a thesis'}
           </Link>
+        ) : (
+          <span aria-hidden="true" className={`${pillShape} ${placeholder}`}>
+            Publish a thesis
+          </span>
         )}
       </div>
 
       <nav aria-label="Main" className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
         {navLink('/feed', 'Ledger')}
         {navLink('/leaderboard', 'Leaderboard')}
+
+        {!authKnown && (
+          <span aria-hidden="true" className={`rounded ${placeholder}`}>
+            Sign in
+          </span>
+        )}
 
         {authKnown && !user && (
           <Link href={signInHref} className={pathname === '/login' ? activeClass : linkClass}>
