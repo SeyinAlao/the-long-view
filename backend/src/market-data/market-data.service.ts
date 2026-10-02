@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { assertOutsideTradingWindow } from './trading-hours';
 
 export interface ParsedPrice {
   ticker: string;
@@ -119,8 +120,11 @@ export class MarketDataService {
   // fails, or parsing yields suspiciously few results (NGX changed
   // something, or served an error page instead of real data), this
   // aborts before writing anything, leaving yesterday's real prices in
-  // place rather than overwriting them with garbage or zeros.
-  async refreshPrices(): Promise<{ updated: number; skippedUnrecognized: number }> {
+  // place rather than overwriting them with garbage or zeros. Refuses
+  // during NGX trading hours, before fetching anything. `now` is a
+  // parameter so tests can fix the clock.
+  async refreshPrices(now: Date = new Date()): Promise<{ updated: number; skippedUnrecognized: number }> {
+    assertOutsideTradingWindow(now);
     const rawText = await this.fetchNgxPriceListPage();
     const parsed = this.parsePriceList(rawText);
 

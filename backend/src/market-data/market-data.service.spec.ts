@@ -53,13 +53,17 @@ describe('MarketDataService.parsePriceList', () => {
   });
 });
 
+// A weekday evening in Lagos, after the close, so the trading-hours
+// guard never decides these tests (see trading-hours.spec.ts).
+const AFTER_CLOSE = new Date('2026-10-07T18:00:00+01:00');
+
 describe('MarketDataService.refreshPrices', () => {
   it('refuses to touch the database at all if the parsed result looks suspiciously small', async () => {
     const prisma = { security: { findMany: jest.fn(), update: jest.fn() }, price: { create: jest.fn() } };
     const service = new MarketDataService(prisma as unknown as PrismaService);
     jest.spyOn(service, 'fetchNgxPriceListPage').mockResolvedValue('MTNN N863.00 8.00 %'); // just one entry
 
-    await expect(service.refreshPrices()).rejects.toThrow(/refusing to update/);
+    await expect(service.refreshPrices(AFTER_CLOSE)).rejects.toThrow(/refusing to update/);
     expect(prisma.security.findMany).not.toHaveBeenCalled();
     expect(prisma.security.update).not.toHaveBeenCalled();
   });
@@ -78,7 +82,7 @@ describe('MarketDataService.refreshPrices', () => {
     const manyRealTickers = readFileSync(join(__dirname, '__fixtures__/ngx-sample.txt'), 'utf-8');
     jest.spyOn(service, 'fetchNgxPriceListPage').mockResolvedValue(manyRealTickers);
 
-    const result = await service.refreshPrices();
+    const result = await service.refreshPrices(AFTER_CLOSE);
 
     expect(prisma.security.update).toHaveBeenCalledTimes(1);
     expect(prisma.security.update).toHaveBeenCalledWith({
