@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SecuritiesService } from '../securities/securities.service';
 import { CreateThesisDto } from './dto/create-thesis.dto';
@@ -8,6 +8,12 @@ import { UpdateThesisDto } from './dto/update-thesis.dto';
 // response touches the User model, and it must never be able to leak
 // passwordHash or googleId by accident the way a bare `include` could
 // if the User model ever grows a new field.
+// A thesis is graded against its reference price forever, so that price has
+// to be a real market price, and a recent one. Seven days covers weekends
+// and NGX's longest public-holiday closures, while still noticing within a
+// week if the daily price job has stopped working.
+const MAX_REFERENCE_PRICE_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
 const THESIS_INCLUDE = {
   metrics: true,
   security: true,
@@ -96,18 +102,32 @@ export class ThesesService {
 
   async publish(id: string, authorId: string) {
     const thesis = await this.getOwnedDraftOrThrow(id, authorId);
-    const security = await this.prisma.security.findUnique({
-      where: { id: thesis.securityId },
+
+    // The most recent price actually fetched from NGX, from the history
+    // the daily price job records. Security.currentPrice can't be trusted
+    // for this on its own: the seed fills it with a placeholder, and that
+    // placeholder would be locked into a published thesis forever.
+    const latestPrice = await this.prisma.price.findFirst({
+      where: { securityId: thesis.securityId },
+      orderBy: { recordedAt: 'desc' },
     });
+
+    if (!latestPrice || latestPrice.recordedAt.getTime() < Date.now() - MAX_REFERENCE_PRICE_AGE_MS) {
+      throw new ConflictException(
+        "This company doesn't have a current market price yet, so the thesis can't be published - " +
+          'its reference price would be wrong, and it can never change once published. ' +
+          'Your draft is saved; try again after the next daily price update.',
+      );
+    }
 
     return this.prisma.thesis.update({
       where: { id },
       data: {
         status: 'ACTIVE',
         publishedAt: new Date(),
-        // The whole point — see docs/decisions/004. Never taken from
-        // user input, always the security's real price right now.
-        referencePrice: security!.currentPrice,
+        // The whole point - see docs/decisions/004. Never taken from
+        // user input: the latest real market price at this moment.
+        referencePrice: latestPrice.price,
       },
       include: THESIS_INCLUDE,
     });
