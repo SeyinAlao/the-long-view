@@ -50,10 +50,12 @@ Failure emails for scheduled runs go to the GitHub user who created the workflow
 
 ## Restoring a backup
 
-1. Download the newest `.age` artifact from the private repo's backup run.
-2. Decrypt it on your own machine: `age -d -i <path to private key> -o backup.dump backup.dump.age`.
-3. Restore into a **new, empty database** (a fresh database on a scratch Neon branch, or a local Postgres), never over a live branch: `pg_restore --no-owner --no-privileges -d "<scratch direct URL>" backup.dump`. Use `pg_restore` 18 or newer, to match the server.
-4. Check the row counts, then point an environment at it or copy what you need. Delete `backup.dump` afterwards.
+The step-by-step PowerShell procedure, and `restore-check.sql` for the row counts, are in the private repo's README. Restoring was proven on 2 October 2026 (row counts matched the backup run's summary). The rules that matter:
+
+- Decrypt only on your own machine, with the offline private key.
+- Restore only into a **new, empty database**, never over a live branch. A new Neon branch's `neondb` is a copy of its parent's data, not empty: create a new database on the branch instead, and check `([uri]$env:RESTORE_URL).AbsolutePath` names it before running `pg_restore`.
+- Use `pg_restore` 18 or newer, to match the server.
+- Delete the decrypted `backup.dump` and the scratch branch afterwards.
 
 ## Database migrations
 
