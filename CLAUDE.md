@@ -76,6 +76,10 @@ the Neon test branch for that terminal session only:
 - In-process cron jobs are off when `DISABLE_SCHEDULED_JOBS=true` (Render).
 - NGX trading hours are 9:00am-4:00pm WAT since 27 April 2026. Don't assume
   the old 2:30pm close anywhere.
+- `refreshPrices()` refuses (and the script exits 1) on weekdays from
+  9:00am to 4:30pm Lagos time, read in Africa/Lagos, never the machine's
+  zone (`trading-hours.ts`). Every refresh adds a price row, so a mid-day
+  run would store intraday prices as a close.
 
 ## Where it runs
 
@@ -103,11 +107,12 @@ FRONTEND_URL / CORS_ORIGIN / GOOGLE_CALLBACK_URL and Google's OAuth URIs.
    age-encrypted, 90-day artifacts). Both passed manual runs; the first
    backup was 43.6 KB (about 4 MB at 90 days of the 500 MB allowance), and
    a restore into an empty database matched its row counts. Remaining:
-   - Confirm a failed scheduled run emails Seyin.
    - For the first week, compare a few fetched prices with NGX's
      official closing prices to confirm 5:30pm catches the final ones.
-   - Only start the market job by hand after 5:30pm Lagos: every refresh
-     adds a price row, so a run during trading stores intraday prices.
+   - Scheduled runs can start hours late on this repo (the first one,
+     2 October, was 4h22m late); the trading-hours guard keeps a very late
+     run from storing next-day intraday prices. If runs are dropped or
+     keep slipping, trigger workflow_dispatch from cron-job.org instead.
 2. **Browser tests PR.** Playwright in the repo and CI: the sign-up -> publish
    -> counter -> sign-out journey, two accounts on one tab (no leaked drafts),
    the Google button's loading state, an axe-core WCAG 2.2 AA audit across the
