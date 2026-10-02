@@ -7,7 +7,7 @@
 | Frontend (Next.js) | Vercel, Hobby plan | Root directory `frontend`. Browser calls go to `/api/...` and are forwarded to the API (ADR 007). |
 | API (NestJS) | Render, free web service | Defined in `render.yaml`. Sleeps after 15 idle minutes; the first request after that takes about a minute. |
 | Database | Neon | `production` branch for real data, `staging` for the staging deploy, `test` for e2e tests only. |
-| Daily jobs | GitHub Actions | Market-data refresh and evaluation. In-process schedulers are off on Render (`DISABLE_SCHEDULED_JOBS=true`). |
+| Daily jobs and backups | GitHub Actions, in the private `the-long-view-backups` repo | Price refresh and evaluation on weekdays at 5:30pm Lagos, and a nightly encrypted backup (ADR 009). In-process schedulers are off on Render (`DISABLE_SCHEDULED_JOBS=true`). |
 
 ## Environment variables
 
@@ -36,6 +36,24 @@ Changing `JWT_SECRET` signs everyone out. It never deletes data.
 ### Google Cloud OAuth client
 
 Each environment's callback must be listed under **Authorized redirect URIs**, exactly as set in `GOOGLE_CALLBACK_URL`. While the consent screen is in **Testing**, only listed test users can sign in; publish it before going live.
+
+### Scheduled jobs (private repo's Actions secrets)
+
+| Secret | Value |
+|---|---|
+| `DATABASE_URL` | Pooled connection string of the database the site uses: **staging** until go-live, then production |
+| `DIRECT_URL` | Direct connection string of the same branch, used by `pg_dump` |
+
+The age **public** key is written in the backup workflow itself; it is not a secret. The private key is kept offline only. At go-live, switch both secrets to the production branch.
+
+Failure emails for scheduled runs go to the GitHub user who created the workflow, or whoever last changed its `cron` line or re-enabled it, with email turned on under Settings, then Notifications, then Actions.
+
+## Restoring a backup
+
+1. Download the newest `.age` artifact from the private repo's backup run.
+2. Decrypt it on your own machine: `age -d -i <path to private key> -o backup.dump backup.dump.age`.
+3. Restore into a **new, empty database** (a fresh database on a scratch Neon branch, or a local Postgres), never over a live branch: `pg_restore --no-owner --no-privileges -d "<scratch direct URL>" backup.dump`. Use `pg_restore` 18 or newer, to match the server.
+4. Check the row counts, then point an environment at it or copy what you need. Delete `backup.dump` afterwards.
 
 ## Database migrations
 

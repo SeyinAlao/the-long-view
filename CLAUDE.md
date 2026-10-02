@@ -94,36 +94,33 @@ FRONTEND_URL / CORS_ORIGIN / GOOGLE_CALLBACK_URL and Google's OAuth URIs.
 
 ## Next steps, in order
 
-1. If still open: merge `fix/real-reference-price`, then on the live site
-   confirm publishing is refused without prices, run
-   `npm run market-data:refresh` against the staging DB, and confirm a
-   publish shows a real reference price.
-2. **Daily jobs + backup PR.** NGX trades 9:00am-4:00pm WAT (extended from
-   9:30-2:30 on 27 April 2026), and its public price page runs about 30
-   minutes behind. So:
-   - GitHub Actions workflow: market-data refresh on weekdays at 5:30pm
-     Lagos = `30 16 * * 1-5` UTC (Lagos is UTC+1, no DST; Actions cron can
-     run 5-30 min late), then evaluation in the same workflow, after it.
-   - Fix the in-process schedulers too: `market-data.scheduler.ts` (4pm) and
-     `evaluation.scheduler.ts` (4:30pm) predate the new hours - at 4pm they
-     would fetch prices from before the close. Move to 5:30pm / 6:00pm Lagos
-     and correct their comments.
-   - In the first week, compare a few fetched prices with NGX's official
-     closing prices to confirm 5:30pm catches the final ones.
-   - A regular database backup kept somewhere private and free (the repo is
-     public, so not in it - research options and recommend before building).
-   - NGX is reachable from Actions runners (proven with
-     test-ngx-reachability.yml). The DB connection string goes in GitHub
-     Actions secrets, never in code.
-3. **Browser tests PR.** Playwright in the repo and CI: the sign-up -> publish
+1. **Daily jobs + backup** (decided - ADR 009, runbook in
+   docs/deployment.md). Scheduler times are fixed in the public repo
+   (5:30pm / 6:00pm Lagos, with a test). Remaining, in the private
+   `the-long-view-backups` repo, against **staging** until go-live:
+   - `daily-market-jobs.yml`: `30 16 * * 1-5` UTC, checks out this repo's
+     master, `npm ci` (lockfile-exact, since it runs with DB credentials),
+     refresh then evaluation (evaluation still runs if refresh fails).
+   - `nightly-backup.yml`: `pg_dump` 18 (server is Postgres 18) over the
+     direct URL, `pg_restore --list` check, age-encrypted to a public key,
+     uploaded as an artifact. Size retention from the first real dump;
+     fail if dump size x retention nears the 500 MB allowance.
+   - Seyin creates the repo, the age key pair (private key offline) and the
+     `DATABASE_URL` / `DIRECT_URL` secrets, and pushes the workflows from
+     his own account so failure emails reach him.
+   - Prove it: a test restore into a scratch database, a deliberately
+     failing scheduled run that emails, and a week of fetched prices
+     compared with NGX's official closes.
+2. **Browser tests PR.** Playwright in the repo and CI: the sign-up -> publish
    -> counter -> sign-out journey, two accounts on one tab (no leaked drafts),
    the Google button's loading state, an axe-core WCAG 2.2 AA audit across the
    main pages including error states, and the cold-start loading states (a
    relay that delays the API). Add `docs/backlog.md` items as they're done.
-4. **Go-live (Plan A).** Clean production database (seed, refresh prices),
+3. **Go-live (Plan A).** Clean production database (seed, refresh prices),
    reset the Neon `neondb_owner` password, publish the Google consent screen,
-   add Vercel Web Analytics, and decide whether to keep the API awake (Render
-   free hours cover about one always-on service).
+   add Vercel Web Analytics, switch the private jobs repo's two secrets to
+   production, and decide whether to keep the API awake (Render free hours
+   cover about one always-on service).
 
 ## Reminders for Seyin (raise only once the steps above are done)
 
