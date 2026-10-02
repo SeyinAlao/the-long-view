@@ -2,13 +2,17 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { MarketDataService } from './market-data.service';
 
+// NGX trades 9:00am-4:00pm Lagos time (since 27 April 2026), and its
+// public price list runs about 30 minutes behind. 5:30pm leaves room for
+// both, so the fetch picks up the day's closing prices rather than
+// intraday ones from before the close.
 @Injectable()
 export class MarketDataScheduler {
   private readonly logger = new Logger(MarketDataScheduler.name);
 
   constructor(private readonly marketDataService: MarketDataService) {}
 
-  @Cron('0 16 * * 1-5', { timeZone: 'Africa/Lagos' })
+  @Cron('30 17 * * 1-5', { name: 'market-data-refresh', timeZone: 'Africa/Lagos' })
   async handleDailyRefresh() {
     try {
       const result = await this.marketDataService.refreshPrices();

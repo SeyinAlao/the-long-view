@@ -2,17 +2,17 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { EvaluationService } from './evaluation.service';
 
-// Runs shortly after the market-data refresh (4pm Lagos time) each
-// weekday, so freshly-updated prices are actually available for any
-// thesis resolving today, rather than evaluating against yesterday's
-// numbers.
+// Runs half an hour after the market-data refresh (5:30pm Lagos time)
+// each weekday, so freshly-updated closing prices are actually available
+// for any thesis resolving today, rather than evaluating against
+// yesterday's numbers.
 @Injectable()
 export class EvaluationScheduler {
   private readonly logger = new Logger(EvaluationScheduler.name);
 
   constructor(private readonly evaluationService: EvaluationService) {}
 
-  @Cron('30 16 * * 1-5', { timeZone: 'Africa/Lagos' })
+  @Cron('0 18 * * 1-5', { name: 'evaluate-pending-theses', timeZone: 'Africa/Lagos' })
   async handleDailyEvaluation() {
     try {
       const result = await this.evaluationService.evaluatePendingTheses();
