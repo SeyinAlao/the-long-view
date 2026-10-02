@@ -7,7 +7,11 @@ Agreed work that is deliberately not done yet, and when it should be.
 - **Browser tests in CI.** Turn the journey, Google-button and axe accessibility checks used during development into Playwright tests that run on every PR.
 - **Reset the Neon `neondb_owner` password** and update every environment's connection strings. The current one was shared outside the project during setup.
 - **Publish the Google OAuth consent screen**, so any Google account can sign in, not only listed test users.
-- **Daily jobs on GitHub Actions:** market-data refresh, then evaluation, against production.
+- **Daily jobs on GitHub Actions:** market-data refresh, then evaluation, against production. Since publishing now requires a real price from the last 7 days, the refresh job is what keeps publishing possible at all.
+- **A regular database backup, kept somewhere private.** Neon's free plan can only restore to about 6 hours back.
+- **Keep the API awake, or accept the wait.** After 15 idle minutes Render's free API sleeps, and the first visitor waits about 46 seconds. Decide before posting the project publicly.
+- **A clean production database.** The current `production` branch holds development test data, including theses published with the ₦100 placeholder price. Real users should start on clean data.
+- **Vercel Web Analytics** on the production site (free up to 50,000 events a month on Hobby; not on staging, where the only visitor is the developer).
 
 ## After going live
 

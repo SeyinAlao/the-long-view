@@ -1,4 +1,4 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ThesesService } from './theses.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SecuritiesService } from '../securities/securities.service';
@@ -8,6 +8,7 @@ describe('ThesesService', () => {
   let prisma: {
     thesis: { findUnique: jest.Mock; update: jest.Mock; delete: jest.Mock };
     security: { findUnique: jest.Mock };
+    price: { findFirst: jest.Mock };
     thesisMetric: { deleteMany: jest.Mock };
   };
   let securities: { findByTicker: jest.Mock };
@@ -23,6 +24,7 @@ describe('ThesesService', () => {
     prisma = {
       thesis: { findUnique: jest.fn(), update: jest.fn(), delete: jest.fn() },
       security: { findUnique: jest.fn() },
+      price: { findFirst: jest.fn() },
       thesisMetric: { deleteMany: jest.fn() },
     };
     securities = { findByTicker: jest.fn() };
@@ -100,16 +102,48 @@ describe('ThesesService', () => {
   });
 
   describe('reference price', () => {
-    it('takes the reference price from the security, never from the caller', async () => {
+    const daysAgo = (n: number) => new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+
+    it('takes the reference price from the latest real market price, never from the caller', async () => {
       prisma.thesis.findUnique.mockResolvedValue(draftThesis);
-      prisma.security.findUnique.mockResolvedValue({ id: 'sec_1', currentPrice: '742.50' });
+      prisma.price.findFirst.mockResolvedValue({ price: '742.50', recordedAt: daysAgo(1) });
       prisma.thesis.update.mockResolvedValue({ ...draftThesis, status: 'ACTIVE', referencePrice: '742.50' });
 
       await service.publish('thesis_1', 'author_1');
 
+      expect(prisma.price.findFirst).toHaveBeenCalledWith({
+        where: { securityId: 'sec_1' },
+        orderBy: { recordedAt: 'desc' },
+      });
       const updateArg = prisma.thesis.update.mock.calls[0][0];
       expect(updateArg.data.referencePrice).toBe('742.50');
       expect(updateArg.data.status).toBe('ACTIVE');
+    });
+
+    it('refuses to publish when no real price has ever been recorded (only the seed placeholder)', async () => {
+      prisma.thesis.findUnique.mockResolvedValue(draftThesis);
+      prisma.price.findFirst.mockResolvedValue(null);
+
+      await expect(service.publish('thesis_1', 'author_1')).rejects.toThrow(ConflictException);
+      expect(prisma.thesis.update).not.toHaveBeenCalled();
+    });
+
+    it('refuses to publish when the latest real price is more than 7 days old', async () => {
+      prisma.thesis.findUnique.mockResolvedValue(draftThesis);
+      prisma.price.findFirst.mockResolvedValue({ price: '742.50', recordedAt: daysAgo(8) });
+
+      await expect(service.publish('thesis_1', 'author_1')).rejects.toThrow(ConflictException);
+      expect(prisma.thesis.update).not.toHaveBeenCalled();
+    });
+
+    it('still publishes across a long weekend or holiday (a price 6 days old)', async () => {
+      prisma.thesis.findUnique.mockResolvedValue(draftThesis);
+      prisma.price.findFirst.mockResolvedValue({ price: '742.50', recordedAt: daysAgo(6) });
+      prisma.thesis.update.mockResolvedValue({ ...draftThesis, status: 'ACTIVE' });
+
+      await service.publish('thesis_1', 'author_1');
+
+      expect(prisma.thesis.update).toHaveBeenCalled();
     });
   });
 

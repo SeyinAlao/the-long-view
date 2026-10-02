@@ -36,6 +36,15 @@ describe('Theses (e2e)', () => {
     await app.init();
 
     prisma = moduleFixture.get(PrismaService);
+
+    // Publishing needs a recent real market price (seeded prices are only
+    // placeholders), so record one for each company these tests publish
+    // against - as the daily price job would. NESTLE is deliberately left
+    // without one, to test the refusal.
+    for (const ticker of ['DANGCEM', 'ZENITHBANK']) {
+      const security = await prisma.security.findUnique({ where: { ticker } });
+      await prisma.price.create({ data: { securityId: security!.id, price: 1234.5 } });
+    }
   });
 
   afterEach(async () => {
@@ -78,6 +87,28 @@ describe('Theses (e2e)', () => {
     await request(app.getHttpServer()).get(`/theses/${created.body.id}`).expect(404);
   });
 
+  it('refuses to publish a company with no real market price yet, and leaves the draft as it was', async () => {
+    const cookie = await registerAndGetCookie('noprice@example.com', 'noprice');
+    const created = await request(app.getHttpServer())
+      .post('/theses')
+      .set('Cookie', cookie)
+      .send({ ...validThesisBody, ticker: 'NESTLE' })
+      .expect(201);
+
+    const refused = await request(app.getHttpServer())
+      .post(`/theses/${created.body.id}/publish`)
+      .set('Cookie', cookie)
+      .expect(409);
+    expect(refused.body.message).toContain("doesn't have a current market price");
+
+    const after = await request(app.getHttpServer())
+      .get(`/theses/${created.body.id}`)
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(after.body.status).toBe('DRAFT');
+    expect(after.body.referencePrice).toBeNull();
+  });
+
   it('publishing sets an automatic reference price and locks the thesis from further edits', async () => {
     const cookie = await registerAndGetCookie('publisher@example.com', 'publisher');
     const created = await request(app.getHttpServer())
@@ -92,7 +123,8 @@ describe('Theses (e2e)', () => {
       .expect(201);
 
     expect(published.body.status).toBe('ACTIVE');
-    expect(published.body.referencePrice).not.toBeNull();
+    // The real recorded price, not the seed's 100.00 placeholder.
+    expect(Number(published.body.referencePrice)).toBe(1234.5);
 
     // Now visible with no session at all.
     await request(app.getHttpServer()).get(`/theses/${created.body.id}`).expect(200);
