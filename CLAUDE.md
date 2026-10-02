@@ -73,6 +73,8 @@ the Neon test branch for that terminal session only:
 - Signing in or out clears the TanStack Query cache and the unsaved-draft
   autosave (account switching on a shared browser).
 - In-process cron jobs are off when `DISABLE_SCHEDULED_JOBS=true` (Render).
+- NGX trading hours are 9:00am-4:00pm WAT since 27 April 2026. Don't assume
+  the old 2:30pm close anywhere.
 
 ## Where it runs
 
@@ -96,12 +98,23 @@ FRONTEND_URL / CORS_ORIGIN / GOOGLE_CALLBACK_URL and Google's OAuth URIs.
    confirm publishing is refused without prices, run
    `npm run market-data:refresh` against the staging DB, and confirm a
    publish shows a real reference price.
-2. **Daily jobs + backup PR.** GitHub Actions workflows: market-data refresh
-   on weekdays after NGX close (Lagos is UTC+1; Actions cron is UTC and can
-   run 5-30 min late), then evaluation, then a regular database backup kept
-   somewhere private and free (the repo is public, so not in it - research
-   options and recommend before building). NGX is reachable from Actions
-   runners (proven with test-ngx-reachability.yml).
+2. **Daily jobs + backup PR.** NGX trades 9:00am-4:00pm WAT (extended from
+   9:30-2:30 on 27 April 2026), and its public price page runs about 30
+   minutes behind. So:
+   - GitHub Actions workflow: market-data refresh on weekdays at 5:30pm
+     Lagos = `30 16 * * 1-5` UTC (Lagos is UTC+1, no DST; Actions cron can
+     run 5-30 min late), then evaluation in the same workflow, after it.
+   - Fix the in-process schedulers too: `market-data.scheduler.ts` (4pm) and
+     `evaluation.scheduler.ts` (4:30pm) predate the new hours - at 4pm they
+     would fetch prices from before the close. Move to 5:30pm / 6:00pm Lagos
+     and correct their comments.
+   - In the first week, compare a few fetched prices with NGX's official
+     closing prices to confirm 5:30pm catches the final ones.
+   - A regular database backup kept somewhere private and free (the repo is
+     public, so not in it - research options and recommend before building).
+   - NGX is reachable from Actions runners (proven with
+     test-ngx-reachability.yml). The DB connection string goes in GitHub
+     Actions secrets, never in code.
 3. **Browser tests PR.** Playwright in the repo and CI: the sign-up -> publish
    -> counter -> sign-out journey, two accounts on one tab (no leaked drafts),
    the Google button's loading state, an axe-core WCAG 2.2 AA audit across the
