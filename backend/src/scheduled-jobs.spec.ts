@@ -28,11 +28,17 @@ describe('scheduled jobs', () => {
 
   afterAll(() => moduleRef.close());
 
-  // Next run after `from`, as a weekday and time in Lagos.
+  afterEach(() => jest.restoreAllMocks());
+
+  // Next run after `from`, as a weekday and time in Lagos. Goes through
+  // sendAt(), the same call the scheduler uses, which applies the job's
+  // own timeZone - getNextDateFrom() would silently use the machine's
+  // zone instead, so this would pass only on a computer set to Lagos.
   function nextLagosRun(jobName: string, from: string): string {
+    jest.spyOn(Date, 'now').mockReturnValue(new Date(from).getTime());
     return registry
       .getCronJob(jobName)
-      .cronTime.getNextDateFrom(new Date(from))
+      .cronTime.sendAt()
       .setZone('Africa/Lagos')
       .toFormat('ccc HH:mm');
   }
