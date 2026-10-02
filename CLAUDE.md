@@ -25,7 +25,8 @@ Before any commit, run lint, typecheck, test and build for every side touched,
 plus test:e2e for backend changes.
 
 **e2e tests wipe their database.** A guard refuses to run unless the database
-name contains `test`. `backend/.env` points at the real `neondb`, so e2e needs
+name contains `test`. `backend/.env` points at the **production** branch's
+`neondb` (checked 2 October 2026; not staging, which the site uses), so e2e needs
 the Neon test branch for that terminal session only:
 `$env:DATABASE_URL="<test branch pooled URL>"`, run, then
 `Remove-Item Env:\DATABASE_URL`. Never point e2e at staging or production.
@@ -95,22 +96,18 @@ FRONTEND_URL / CORS_ORIGIN / GOOGLE_CALLBACK_URL and Google's OAuth URIs.
 ## Next steps, in order
 
 1. **Daily jobs + backup** (decided - ADR 009, runbook in
-   docs/deployment.md). Scheduler times are fixed in the public repo
-   (5:30pm / 6:00pm Lagos, with a test). Remaining, in the private
+   docs/deployment.md). Live since 2 October 2026 in the private
    `the-long-view-backups` repo, against **staging** until go-live:
-   - `daily-market-jobs.yml`: `30 16 * * 1-5` UTC, checks out this repo's
-     master, `npm ci` (lockfile-exact, since it runs with DB credentials),
-     refresh then evaluation (evaluation still runs if refresh fails).
-   - `nightly-backup.yml`: `pg_dump` 18 (server is Postgres 18) over the
-     direct URL, `pg_restore --list` check, age-encrypted to a public key,
-     uploaded as an artifact. Size retention from the first real dump;
-     fail if dump size x retention nears the 500 MB allowance.
-   - Seyin creates the repo, the age key pair (private key offline) and the
-     `DATABASE_URL` / `DIRECT_URL` secrets, and pushes the workflows from
-     his own account so failure emails reach him.
-   - Prove it: a test restore into a scratch database, a deliberately
-     failing scheduled run that emails, and a week of fetched prices
-     compared with NGX's official closes.
+   `daily-market-jobs.yml` (weekdays `30 16 * * 1-5` UTC, `npm ci`,
+   refresh then evaluation) and `nightly-backup.yml` (`pg_dump` 18,
+   age-encrypted, 90-day artifacts). Both passed manual runs; the first
+   backup was 43.6 KB (about 4 MB at 90 days of the 500 MB allowance), and
+   a restore into an empty database matched its row counts. Remaining:
+   - Confirm a failed scheduled run emails Seyin.
+   - For the first week, compare a few fetched prices with NGX's
+     official closing prices to confirm 5:30pm catches the final ones.
+   - Only start the market job by hand after 5:30pm Lagos: every refresh
+     adds a price row, so a run during trading stores intraday prices.
 2. **Browser tests PR.** Playwright in the repo and CI: the sign-up -> publish
    -> counter -> sign-out journey, two accounts on one tab (no leaked drafts),
    the Google button's loading state, an axe-core WCAG 2.2 AA audit across the
