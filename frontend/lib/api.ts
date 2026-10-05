@@ -1,4 +1,4 @@
-import { BACKEND_URL } from './backend-url';
+import { BACKEND_URL, backendTimeoutSignal } from './backend-url';
 
 // In the browser, always this app's own /api path (forwarded to the
 // backend by next.config's rewrites), so the session cookie stays
@@ -6,13 +6,14 @@ import { BACKEND_URL } from './backend-url';
 // is no browser origin to be relative to, so it calls the backend
 // directly. Decided per call, not once at import, since this module is
 // shared by both.
-function apiBase(): string {
-  return typeof window === 'undefined' ? BACKEND_URL : '/api';
-}
+const onServer = () => typeof window === 'undefined';
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${apiBase()}${path}`, {
+  const res = await fetch(`${onServer() ? BACKEND_URL : '/api'}${path}`, {
     ...init,
+    // Server-side only: a page render must end in the page or the error
+    // page. In the browser, TanStack Query owns retries and waiting.
+    signal: init?.signal ?? (onServer() ? backendTimeoutSignal() : undefined),
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',

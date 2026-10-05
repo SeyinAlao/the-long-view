@@ -40,3 +40,8 @@ export const FRONTEND_PORT = 3000;
 export const BACKEND_PORT = 4000;
 export const RELAY_PORT = 4100;
 export const RELAY_URL = `http://localhost:${RELAY_PORT}`;
+
+// The frontend's server-side wait for the API (lib/backend-url.ts),
+// shortened from production's 90s so the timeout can be tested. Still
+// well above the cold-start test's 12s delay, which must not time out.
+export const API_TIMEOUT_MS = 20_000;

@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { BACKEND_PORT, DATABASE_URL, FRONTEND_PORT, RELAY_PORT, RELAY_URL } from './support/env';
+import { API_TIMEOUT_MS, BACKEND_PORT, DATABASE_URL, FRONTEND_PORT, RELAY_PORT, RELAY_URL } from './support/env';
 
 // Three servers, as in production but local: the API, a relay in front
 // of it (support/relay.mjs - it can add a delay to imitate Render's
@@ -70,7 +70,7 @@ export default defineConfig({
       cwd: '../frontend',
       command: `${build}npm run start -- --port ${FRONTEND_PORT}`,
       url: `http://localhost:${FRONTEND_PORT}`,
-      env: { BACKEND_URL: RELAY_URL, NEXT_TELEMETRY_DISABLED: '1' },
+      env: { BACKEND_URL: RELAY_URL, API_TIMEOUT_MS: String(API_TIMEOUT_MS), NEXT_TELEMETRY_DISABLED: '1' },
       // Shown, not discarded: the log proves which Next.js version was
       // built and that it ran as a production build (next build + next
       // start, as on Vercel) - and explains a failed build in CI.

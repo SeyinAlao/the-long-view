@@ -32,6 +32,7 @@ Changing `JWT_SECRET` signs everyone out. It never deletes data.
 | Variable | Value |
 |---|---|
 | `BACKEND_URL` | The API's URL, e.g. `https://<service>.onrender.com`. Read at **build** time by the `/api` rewrite, so changing it needs a redeploy. |
+| `API_TIMEOUT_MS` | **Leave unset.** How long a page waits for the API before showing the error page; default 90000 (90 s), which covers the ~46 s cold start and stays under Hobby's 300 s function limit. Only the browser tests set it, to 20000. |
 
 ### Google Cloud OAuth client
 

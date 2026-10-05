@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { BACKEND_URL } from './lib/backend-url';
+import { BACKEND_URL, backendTimeoutSignal } from './lib/backend-url';
 import { safeNextPath } from './lib/safe-next-path';
 
 const AUTH_PAGES = ['/login', '/signup'];
@@ -28,6 +28,7 @@ async function isValidSession(token: string): Promise<boolean> {
   try {
     const meResponse = await fetch(`${BACKEND_URL}/auth/me`, {
       headers: { cookie: `${SESSION_COOKIE}=${token}` },
+      signal: backendTimeoutSignal(),
     });
     return meResponse.ok;
   } catch {
