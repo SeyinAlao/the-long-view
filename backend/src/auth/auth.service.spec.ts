@@ -33,6 +33,9 @@ describe('AuthService', () => {
         bio: null,
         avatarUrl: null,
         createdAt: new Date(),
+        passwordHash: input.passwordHash ?? null,
+        googleId: null,
+        sessionVersion: 0,
       }));
 
       await authService.register({
@@ -119,6 +122,7 @@ describe('AuthService', () => {
         bio: null,
         avatarUrl: null,
         createdAt: new Date(),
+        sessionVersion: 3,
       };
       usersService.findByEmail.mockResolvedValue(rawUser as any);
       usersService.toSafeUser.mockReturnValue({
@@ -138,7 +142,9 @@ describe('AuthService', () => {
 
       expect(result.accessToken).toBe('signed.jwt.token');
       expect(result.user).not.toHaveProperty('passwordHash');
-      expect(jwtService.sign).toHaveBeenCalledWith({ sub: 'user_1', email: 'seyin@example.com' });
+      // sv is the user's current session version: raising it (logout)
+      // ends this token. Without it the token could never be revoked.
+      expect(jwtService.sign).toHaveBeenCalledWith({ sub: 'user_1', email: 'seyin@example.com', sv: 3 });
     });
   });
 });
@@ -164,6 +170,7 @@ describe('AuthService.loginWithGoogle', () => {
     avatarUrl: null,
     createdAt: new Date(),
   };
+  const rawUser = { ...safeUser, passwordHash: null, googleId: 'g-123', sessionVersion: 0 };
 
   beforeEach(() => {
     usersService = {
@@ -176,6 +183,7 @@ describe('AuthService.loginWithGoogle', () => {
     };
     jwtService = { sign: jest.fn().mockReturnValue('signed.jwt.token') };
     authService = new AuthService(usersService as unknown as UsersService, jwtService as unknown as JwtService);
+    usersService.toSafeUser.mockReturnValue(safeUser);
   });
 
   it('logs in directly when this Google id has signed in before', async () => {
@@ -196,7 +204,7 @@ describe('AuthService.loginWithGoogle', () => {
       passwordHash: 'some-existing-hash',
       googleId: null,
     } as any);
-    usersService.linkGoogleId.mockResolvedValue(safeUser);
+    usersService.linkGoogleId.mockResolvedValue(rawUser);
 
     const result = await authService.loginWithGoogle(googleProfile);
 
@@ -209,7 +217,7 @@ describe('AuthService.loginWithGoogle', () => {
     usersService.findByGoogleId.mockResolvedValue(null);
     usersService.findByEmail.mockResolvedValue(null);
     usersService.generateUsernameFromEmail.mockResolvedValue('seyin');
-    usersService.create.mockResolvedValue(safeUser);
+    usersService.create.mockResolvedValue(rawUser);
 
     const result = await authService.loginWithGoogle(googleProfile);
 

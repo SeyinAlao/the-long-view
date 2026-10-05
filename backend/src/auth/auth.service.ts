@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
-import { UsersService, SafeUser } from '../users/users.service';
+import { UsersService, SafeUser, RawUser } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { GoogleProfile } from './strategies/google.strategy';
@@ -36,7 +36,7 @@ export class AuthService {
       name: dto.name,
     });
 
-    return { user, accessToken: this.signToken(user.id, user.email) };
+    return this.issueSession(user);
   }
 
   async login(dto: LoginDto): Promise<{ user: SafeUser; accessToken: string }> {
@@ -62,8 +62,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    const user = this.usersService.toSafeUser(record);
-    return { user, accessToken: this.signToken(user.id, user.email) };
+    return this.issueSession(record);
   }
 
   // Called after Passport's GoogleStrategy has already verified the
@@ -74,14 +73,12 @@ export class AuthService {
   async loginWithGoogle(profile: GoogleProfile): Promise<{ user: SafeUser; accessToken: string }> {
     const byGoogleId = await this.usersService.findByGoogleId(profile.googleId);
     if (byGoogleId) {
-      const user = this.usersService.toSafeUser(byGoogleId);
-      return { user, accessToken: this.signToken(user.id, user.email) };
+      return this.issueSession(byGoogleId);
     }
 
     const byEmail = await this.usersService.findByEmail(profile.email);
     if (byEmail) {
-      const user = await this.usersService.linkGoogleId(byEmail.id, profile.googleId);
-      return { user, accessToken: this.signToken(user.id, user.email) };
+      return this.issueSession(await this.usersService.linkGoogleId(byEmail.id, profile.googleId));
     }
 
     const username = await this.usersService.generateUsernameFromEmail(profile.email);
@@ -93,10 +90,18 @@ export class AuthService {
       passwordHash: null,
     });
 
-    return { user, accessToken: this.signToken(user.id, user.email) };
+    return this.issueSession(user);
   }
 
-  private signToken(userId: string, email: string): string {
-    return this.jwtService.sign({ sub: userId, email });
+  // Ends every session on every device (logout). See ADR 002.
+  async endAllSessions(userId: string): Promise<void> {
+    await this.usersService.endAllSessions(userId);
+  }
+
+  // The one place a session token is made. `sv` ties it to the user's
+  // current session version, so raising that version ends it.
+  private issueSession(record: RawUser): { user: SafeUser; accessToken: string } {
+    const accessToken = this.jwtService.sign({ sub: record.id, email: record.email, sv: record.sessionVersion });
+    return { user: this.usersService.toSafeUser(record), accessToken };
   }
 }
