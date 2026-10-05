@@ -42,7 +42,10 @@ enum ReportStatus {
 
 model User {
   id           String   @id @default(cuid())
-  email        String   @unique
+  // citext: compared case-insensitively by the database, so "Ana@x.com" and
+  // "ana@x.com" are one account. The app also stores it lowercased
+  // (normaliseEmail). See the case_insensitive_email migration.
+  email        String   @unique @db.Citext
   username     String   @unique
   // Nullable: a Google-only account has no password to hash. Login must
   // check for null here before ever calling bcrypt.compare against it.
@@ -51,6 +54,9 @@ model User {
   name         String
   bio          String?
   avatarUrl    String?
+  // Every session token carries the value this had when it was issued;
+  // raising it (logout) ends every session at once. See ADR 002.
+  sessionVersion Int    @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

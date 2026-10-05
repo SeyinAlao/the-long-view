@@ -71,6 +71,33 @@ Remove-Item Env:\DIRECT_URL
 
 Never run `prisma migrate reset`, `prisma db push --force-reset` or the e2e tests against staging or production. The e2e tests refuse to run unless the database name contains `test`.
 
+Two things to know before any migration (both checked on 5 October 2026 with Prisma 7.10):
+
+- **Always set `DIRECT_URL` first.** `prisma.config.ts` loads `backend/.env`, which points at the **production** branch. dotenv never overrides a variable that is already set, so setting `DIRECT_URL` in the shell is what keeps a command on the database you meant.
+- **Prisma does not wrap a migration in a transaction.** If one fails part-way, the statements before the failure stay applied and the migration is left unfinished, which blocks every later deploy. Write multi-statement migrations inside `BEGIN; ... COMMIT;`, so a failure changes nothing. After any failure: `npx prisma migrate resolve --rolled-back <migration folder name>`, fix the cause, deploy again.
+
+### Case-insensitive email and session version (`20261005120000_...`)
+
+**Apply this before the code that needs it merges**: the new code reads `sessionVersion`, so it fails against a database without it. Old code keeps working on the migrated database with one exception: the migration lowercases stored emails, and old code looks emails up exactly, so someone whose stored email had capitals can't sign in until the new code deploys, minutes later. Fine on staging; production starts clean.
+
+From `backend/`, in PowerShell:
+
+1. In the Neon console, create a branch from the target (for example `staging-before-auth-1` from `staging`). It is free and instant, and is the way back.
+2. Load the target's **direct** URL into this window only:
+   ```
+   $env:DIRECT_URL = "<the target's direct connection string>"
+   $psql = "C:\Program Files\PostgreSQL\18\bin\psql.exe"
+   ```
+3. Check that no two accounts' emails differ only by letter case. Read-only; it must print `(0 rows)`:
+   ```
+   & $psql $env:DIRECT_URL -c 'SELECT lower(email) AS email, count(*) FROM "User" GROUP BY lower(email) HAVING count(*) > 1;'
+   ```
+   If it prints rows, stop: decide which account to keep first. The migration refuses to run in that case anyway, and changes nothing.
+4. Apply: `npx prisma migrate deploy`
+5. Verify: `& $psql $env:DIRECT_URL -c '\d "User"'` shows `email | citext` and `sessionVersion | integer | not null default 0`, and `npx prisma migrate status` says the database is up to date.
+6. If step 4 failed: nothing was applied. Run `npx prisma migrate resolve --rolled-back 20261005120000_case_insensitive_email_session_version`, fix the cause, and go back to step 3.
+7. `Remove-Item Env:\DIRECT_URL`. Then merge the code. When the API redeploys, every existing session ends (tokens issued before this carry no session version), so everyone signs in once.
+
 ## Running the tests locally
 
 The backend e2e tests and the browser tests both wipe their database, so they run against a **local** Postgres 18, not over the internet. CI is the authoritative run; this is for checking before you push.
