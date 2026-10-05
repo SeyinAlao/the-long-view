@@ -29,7 +29,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   // The token must still carry the user's current session version. A
   // token without one predates session revocation and is refused too, so
   // every token issued before it shipped stopped working (ADR 002).
-  async validate(payload: { sub: string; email: string; sv?: number }) {
+  async validate(payload: { sub?: unknown; email: string; sv?: number; typ?: unknown }) {
+    // A session token has a subject and no `typ`. Anything else signed
+    // with the same secret (the Google sign-in state cookie) is refused.
+    if (typeof payload.sub !== 'string' || payload.typ !== undefined) {
+      throw new UnauthorizedException('Invalid session');
+    }
     const found = await this.usersService.findSessionUser(payload.sub);
     if (!found) {
       throw new UnauthorizedException('User no longer exists');

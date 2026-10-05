@@ -1,21 +1,19 @@
 import { Logger } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
+import type { JwtService } from '@nestjs/jwt';
 import type { Profile } from 'passport-google-oauth20';
 import { GoogleStrategy } from './google.strategy';
 
 // Google sign-in may join an existing account by email (ADR 003), so it
 // only accepts an address Google says it has verified.
 describe('GoogleStrategy.validate', () => {
-  const config = { getOrThrow: (key: string) => `test-${key}` } as unknown as ConfigService;
-  const strategy = new GoogleStrategy(config);
+  const config = { getOrThrow: (key: string) => `test-${key}`, get: () => undefined } as unknown as ConfigService;
+  const strategy = new GoogleStrategy(config, {} as JwtService);
 
   const profileWith = (email: { value: string; verified?: unknown }) =>
     ({ id: 'g-1', displayName: 'Ana Bello', emails: [email] }) as unknown as Profile;
 
-  const run = (profile: Profile) =>
-    new Promise<{ error: unknown; user: unknown }>((resolve) =>
-      strategy.validate('access', 'refresh', profile, (error, user) => resolve({ error, user })),
-    );
+  const run = async (profile: Profile) => ({ error: null, user: await strategy.validate('access', 'refresh', profile) });
 
   beforeEach(() => jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined));
   afterEach(() => jest.restoreAllMocks());
