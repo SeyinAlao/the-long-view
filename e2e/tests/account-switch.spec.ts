@@ -41,9 +41,14 @@ test("after A signs out, B never sees A's drafts or unsaved writing", async ({ p
 
   await page.goto('/theses/new');
   // Once React updates the character count, the form has hydrated and
-  // its once-only check for a draft to restore has already run.
-  await page.getByLabel('The thesis').pressSequentially('B');
-  await expect(page.getByText('1 characters. Minimum 80.')).toBeVisible();
+  // its once-only check for a draft to restore has already run. A key
+  // pressed before hydration is dropped, so type until the count shows it.
+  const thesis = page.getByLabel('The thesis');
+  await expect(async () => {
+    await thesis.fill('');
+    await thesis.pressSequentially('B');
+    await expect(page.getByText('1 characters. Minimum 80.')).toBeVisible({ timeout: 1_000 });
+  }).toPass();
   await expect(page.getByText('Found an unsaved draft from last time.')).toHaveCount(0);
   expect(await page.evaluate((key) => localStorage.getItem(key) ?? '', AUTOSAVE_KEY)).not.toContain('Unsaved by A');
 });

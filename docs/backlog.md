@@ -16,3 +16,4 @@ Agreed work that is deliberately not done yet, and when it should be.
 - **Google sign-in returns people to where they were.** Today it always lands on the dashboard. Needs a signed OAuth `state` value carrying a `safeNextPath`-checked destination.
 - **Share a thought, story-style, linking to the full thesis**, with the full thesis behind sign-in.
 - **One shared style for form fields.** The same class string is copy-pasted across six files.
+- **One shared "page is ready" wait in the browser tests.** Several tests type into a field straight after `page.goto`, and a key pressed before React hydrates the page is dropped. The account-switch test hit this in October 2026 and now retypes until the form responds (its own workaround). Replace per-test workarounds with one helper that waits for hydration (for example a marker the root layout sets once mounted), and use it in every test that types after loading a page.
