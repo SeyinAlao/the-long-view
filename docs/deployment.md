@@ -24,6 +24,8 @@ Set in the Render dashboard. `render.yaml` sets the non-secret ones.
 | `CORS_ORIGIN` | Same as `FRONTEND_URL` |
 | `GOOGLE_CALLBACK_URL` | `https://<project>.vercel.app/api/auth/google/callback` - on the **frontend's** domain |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | From the Google Cloud OAuth client |
+| `EDGE_PROXY_KEY` | **Required: the API refuses to start in production without it.** The same random value as on Vercel. See "The edge key" below; set it **before** merging the change that introduced it (PR for G3). |
+| `EDGE_PROXY_ENFORCE` | `true` refuses any request without the edge key (403), except `/health`. Unset at first; see "The edge key", step 4. |
 | `GOOGLE_AUTHORIZATION_URL`, `GOOGLE_TOKEN_URL`, `GOOGLE_USERINFO_URL` | **Never set these here.** Test-only: the browser tests point Google sign-in at a fake Google on 127.0.0.1. The API refuses to start if any is set in production or points anywhere but 127.0.0.1, and a unit test fails if `render.yaml` mentions them. |
 
 Changing `JWT_SECRET` signs everyone out. It never deletes data.
@@ -33,6 +35,7 @@ Changing `JWT_SECRET` signs everyone out. It never deletes data.
 | Variable | Value |
 |---|---|
 | `BACKEND_URL` | The API's URL, e.g. `https://<service>.onrender.com`. Read at **build** time by the `/api` rewrite, so changing it needs a redeploy. |
+| `EDGE_PROXY_KEY` | The same value as on Render, type **Secret**, for **Production and Preview**. Read at run time by `proxy.ts` and the server-side fetches; never a `NEXT_PUBLIC_` variable. See "The edge key". |
 | `API_TIMEOUT_MS` | **Leave unset.** How long a page waits for the API before showing the error page; default 90000 (90 s), which covers the ~46 s cold start and stays under Hobby's 300 s function limit. Only the browser tests set it, to 20000. |
 
 ### Google Cloud OAuth client
@@ -186,6 +189,46 @@ Linking a Google sign-in to an existing account runs a **Serializable** transact
    Check the host is staging's (`ep-bold-sky-a5oday2y-pooler...`). Anything starting `FAILED:` means it doesn't work through the pooler: don't rely on linking until that's understood.
 2. **One real link, after the API deploys:** register a throwaway account with a password, using an email of a Google account you control and no published work; sign out; choose "Continue with Google" with that account. Expect the dashboard notice, and that the password no longer signs in. Render's logs show no `google_sign_in_failed`. Delete nothing: the account is staging test data.
 
+## The edge key
+
+Every request the frontend forwards to the API carries a shared secret, `EDGE_PROXY_KEY`. Only with it does the API believe the client IP the frontend sends (ADR 010). It must be set on **both** hosts **before** the change that introduced it merges: from that deploy on, the API refuses to start in production without it.
+
+**1. Make the key and set it, before merging.** Nothing is printed: the value goes straight to the clipboard, and you paste it twice.
+
+1. In PowerShell:
+   ```
+   $k = [byte[]]::new(48); [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($k); [Convert]::ToBase64String($k).TrimEnd('=').Replace('+','-').Replace('/','_') | Set-Clipboard; Remove-Variable k
+   ```
+   That is 48 random bytes as 64 URL-safe characters.
+2. **Render:** the API service, then **Environment**, then **+ Add Environment Variable**. Key `EDGE_PROXY_KEY`, value: paste. Choose **Save only**: the running build ignores it, and the merge deploys the code that reads it. Render asks for `sync: false` values only when a Blueprint is first created, so on this service it has to be added here by hand.
+3. **Vercel:** the project, then **Settings**, then **Environment Variables**. Key `EDGE_PROXY_KEY`, value: paste, type **Secret**, environments **Production** and **Preview** (not Development). Save. It applies from the next deployment, which is the merge.
+4. Clear the clipboard: `Set-Clipboard -Value ' '`. If Windows clipboard history is on (Win+V), open it and delete the entry too.
+
+Nothing else keeps the key. If it is ever lost or exposed, make a new one the same way and set it on both hosts.
+
+**2. Merge.** Render and Vercel both deploy. `EDGE_PROXY_ENFORCE` is still unset, so a request without the key is let through and logged; whichever host finishes first, nothing breaks.
+
+**3. Check the headers arrive through Vercel.** This has only been proven locally (`next start`); Vercel's routing is different.
+
+1. Browse the site for a minute: the Ledger, a thesis, sign in, the dashboard.
+2. Make one direct request, which should be logged: `curl.exe -s -o NUL -w "%{http_code}\n" https://the-long-view-api.onrender.com/leaderboard` (expect `200`).
+3. In Render's logs, search `edge_`. Expect exactly one `edge_unverified area=leaderboard`, from step 2, and **no** `edge_client_ip_missing`.
+   - `edge_unverified` lines from your browsing mean the key didn't arrive. Don't enforce; use the fallback below.
+   - `edge_client_ip_missing` means the key arrived but Vercel's `x-real-ip` didn't. Per-IP limits aren't working; don't enforce until that's understood.
+
+**4. Enforce.** Render, **Environment**: add `EDGE_PROXY_ENFORCE` = `true`, then **Save and deploy**, which reuses the existing build. Then:
+- `curl.exe -s -o NUL -w "%{http_code}\n" https://the-long-view-api.onrender.com/leaderboard` gives `403`.
+- `curl.exe -s -o NUL -w "%{http_code}\n" https://the-long-view-api.onrender.com/health` gives `200`.
+- The site still works: the Ledger, a thesis, sign in and out.
+
+**Undo:** set `EDGE_PROXY_ENFORCE` to `false`, then **Save and deploy**. The site works again with the API open to direct requests.
+
+**Fallback, if step 3 shows the headers don't arrive:** do the rewrite in `proxy.ts` itself, `NextResponse.rewrite(new URL(path + search, BACKEND_URL), { request: { headers } })`, and remove the `/api` rewrite from `next.config.ts`. Next.js documents request headers set in proxy as reaching "rewrite destinations"; its pages don't say whether that includes another host, so repeat step 3 after.
+
+**Changing the key:** set the new value on Vercel and Render (Render: **Save and deploy**), then redeploy Vercel's production deployment. With enforcement on, requests fail with 403 between the two; to avoid that, set `EDGE_PROXY_ENFORCE` to `false` first and back to `true` after.
+
+**One week after merging, check Vercel's usage.** `proxy.ts` now runs on every `/api` call, and Vercel bills proxy (Routing Middleware) as compute. On Hobby the included amounts are 1,000,000 function invocations and 4 hours of Active CPU a month. In the project's **Observability** tab, find the Routing Middleware invocation counts. In the team's **Usage** page, compare Function Invocations and Active CPU with those amounts. Vercel's docs describe both places; the exact menu names haven't been checked in the dashboard.
+
 ## Running the tests locally
 
 The backend e2e tests and the browser tests both wipe their database, so they run against a **local** Postgres 18, not over the internet. CI is the authoritative run; this is for checking before you push.
@@ -209,7 +252,7 @@ The backend e2e tests and the browser tests both wipe their database, so they ru
 
 1. **Neon:** create a new, **empty** database for the environment (not a schema-only branch: that copies an empty migration ledger; see "Baselining"). Build it with `npx prisma migrate deploy` (host check first), then seed the companies: `$env:DATABASE_URL="<pooled URL>"; npx ts-node prisma/seed.ts`.
 2. **Render:** New, then Blueprint, then this repo. Fill in the variables above. `FRONTEND_URL`, `CORS_ORIGIN` and `GOOGLE_CALLBACK_URL` can be placeholders until the frontend exists.
-3. **Vercel:** import the repo, root directory `frontend`, set `BACKEND_URL` before the first deploy.
+3. **Vercel:** import the repo, root directory `frontend`, set `BACKEND_URL` and `EDGE_PROXY_KEY` ("The edge key") before the first deploy. Set the same `EDGE_PROXY_KEY` on Render.
 4. **Render:** replace the placeholders with the real frontend URL. Render redeploys.
 5. **Google Cloud:** add the new callback URL.
 6. **Verify** with the checklist below.
@@ -220,4 +263,6 @@ The backend e2e tests and the browser tests both wipe their database, so they ru
 - [ ] Register with email, save a draft, publish a thesis.
 - [ ] From a second account, publish a counter-thesis.
 - [ ] Sign out, wait at least 20 minutes so the API goes to sleep, then sign back in with Google: everything from before is still there, and the first page after the wait loads (slowly) rather than failing.
+- [ ] A direct request to the API without the edge key gets `403` (`curl.exe -s -o NUL -w "%{http_code}
+" https://<api>/leaderboard`); `/health` still answers.
 - [ ] `curl -sI https://<frontend>/api/leaderboard` shows `x-vercel-enable-rewrite-caching: 0`, or at least no `x-vercel-cache: HIT`.

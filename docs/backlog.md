@@ -6,18 +6,15 @@ Agreed work that is deliberately not done yet, and when it should be.
 
 Agreed 5 October 2026 during the pre-launch audit. Each step is its own PR, merged only when CI is green.
 
-1. **Done 5 October:** friendly error pages (PR #30) and a read-only CI token (PR #31) merged; the code-scanning alerts they addressed closed on `master`.
-2. **Auth PR 1: case-insensitive emails and session revocation.** One migration (`citext` email, `sessionVersion`), applied to staging by hand **before** the code merges, because the new code reads the new column. Logout signs out every device; everyone signs in again once after deploy.
-3. **Auth PR 2: Google account linking.** Changes to how a Google sign-in joins an existing account (amends ADR 003). Also clears CodeQL alerts #5 and #6.
-4. **Auth PR 3: Google sign-in `state`, and returning people to where they were.** A signed, short-lived `state` cookie (Path=/, tested through the `/api` rewrite) carrying a `safeNextPath`-checked destination; no PKCE (Google's web-server guide doesn't document it for confidential clients); `prompt=select_account`; a browser round trip against a fake Google on 127.0.0.1.
-5. **Rate limiting** (G3): per IP, and per email on sign-in.
-6. **Security headers** (G4): API and frontend.
-7. **Edge caching for the Ledger and Leaderboard** (G5). The build must not depend on the API being awake.
-8. **Uptime monitor** (G2) on a new `/health/live` route with no database call, so Neon can scale down. Keeps the API awake by design; check the monitor's timeout against the ~46 s cold start and Neon's current free compute allowance first.
-9. **One rehearsed rollback** (G6) on Vercel and Render, steps verified in each platform's docs.
-10. **Remaining audit items:** a small, policy-checked ramp on staging (with abort conditions, announced before it starts), the NDPA gap list, a one-page SOC 2 checklist, the performance audit, and any remaining findings.
-11. **Go-live items** (below).
-12. **Three-stage rollout:** Seyin and two friends, then a small group, then public. Each stage moves on only when its agreed exit criteria are met; stages 1 and 2 run 7 days each.
+1. **Done 5 October:** friendly error pages (PR #30) and a read-only CI token (PR #31) merged; the code-scanning alerts they addressed closed on `master`. The three auth PRs merged: case-insensitive emails and session revocation (#33), Google account linking (#34, #35), Google sign-in `state` and the return path (#37).
+2. **Rate limiting** (G3) and security logging (audit item F-08): per IP and per account, with the client IP vouched for by the edge key (ADR 010). `EDGE_PROXY_KEY` is set on both hosts before merging; enforcement follows a check of the logs (docs/deployment.md, "The edge key"). Later, optionally: one Vercel firewall rate-limit rule as an outer layer (Hobby allows one).
+3. **Security headers** (G4): API and frontend.
+4. **Edge caching for the Ledger and Leaderboard** (G5). The build must not depend on the API being awake.
+5. **Uptime monitor** (G2) on a new `/health/live` route with no database call, so Neon can scale down. Keeps the API awake by design; check the monitor's timeout against the ~46 s cold start and Neon's current free compute allowance first.
+6. **One rehearsed rollback** (G6) on Vercel and Render, steps verified in each platform's docs.
+7. **Remaining audit items:** a small, policy-checked ramp on staging (with abort conditions, announced before it starts), the NDPA gap list, a one-page SOC 2 checklist, the performance audit, and any remaining findings.
+8. **Go-live items** (below).
+9. **Three-stage rollout:** Seyin and two friends, then a small group, then public. Each stage moves on only when its agreed exit criteria are met; stages 1 and 2 run 7 days each.
 
 ### Go-live items
 
