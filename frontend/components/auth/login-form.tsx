@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useLogin, authErrorMessage } from '@/hooks/use-auth';
 import { GoogleButton } from './google-button';
+import { GoogleSignInError } from './google-sign-in-error';
 import { safeNextPath } from '@/lib/safe-next-path';
 
 export function LoginForm() {
@@ -32,6 +33,8 @@ export function LoginForm() {
       <p className="mt-3 text-sm leading-relaxed text-ink/80">
         Publish your thinking, show your work, and let the record speak.
       </p>
+
+      <GoogleSignInError />
 
       <div className="mt-8">
         <GoogleButton />
