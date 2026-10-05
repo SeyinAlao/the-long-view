@@ -1,18 +1,26 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { UsersService, SafeUser, RawUser } from '../users/users.service';
+import { GoogleLinkService } from '../users/google-link.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { GoogleProfile } from './strategies/google.strategy';
 
 const SALT_ROUNDS = 10;
 
+export type GoogleSignInResult =
+  | { outcome: 'signed_in'; user: SafeUser; accessToken: string; passwordCleared: boolean }
+  | { outcome: 'refused' };
+
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly googleLink: GoogleLinkService,
   ) {}
 
   async register(dto: RegisterDto): Promise<{ user: SafeUser; accessToken: string }> {
@@ -65,20 +73,27 @@ export class AuthService {
     return this.issueSession(record);
   }
 
-  // Called after Passport's GoogleStrategy has already verified the
-  // identity with Google. Three cases: this Google account has signed in
-  // before (find by googleId); this email already has a password account
-  // (link the Google id onto it rather than creating a duplicate); or
-  // this is a genuinely new person (create a fresh account, no password).
-  async loginWithGoogle(profile: GoogleProfile): Promise<{ user: SafeUser; accessToken: string }> {
+  // Called after Passport's GoogleStrategy has verified the identity
+  // with Google, including that Google has verified the email. Three
+  // cases: this Google account has signed in before (find by googleId);
+  // an account with this email exists (GoogleLinkService decides whether
+  // it may be joined - ADR 003); or this is a new person (a fresh
+  // account, no password).
+  async loginWithGoogle(profile: GoogleProfile): Promise<GoogleSignInResult> {
     const byGoogleId = await this.usersService.findByGoogleId(profile.googleId);
     if (byGoogleId) {
-      return this.issueSession(byGoogleId);
+      return { outcome: 'signed_in', ...this.issueSession(byGoogleId), passwordCleared: false };
     }
 
     const byEmail = await this.usersService.findByEmail(profile.email);
     if (byEmail) {
-      return this.issueSession(await this.usersService.linkGoogleId(byEmail.id, profile.googleId));
+      const link = await this.googleLink.link(byEmail.id, profile.googleId);
+      if (link.outcome === 'refused') {
+        // The user id and reason only: never the email, a token or the Google id.
+        this.logger.warn(`google_link_refused userId=${byEmail.id} reason=${link.reason}`);
+        return { outcome: 'refused' };
+      }
+      return { outcome: 'signed_in', ...this.issueSession(link.user), passwordCleared: link.passwordCleared };
     }
 
     const username = await this.usersService.generateUsernameFromEmail(profile.email);
@@ -90,7 +105,7 @@ export class AuthService {
       passwordHash: null,
     });
 
-    return this.issueSession(user);
+    return { outcome: 'signed_in', ...this.issueSession(user), passwordCleared: false };
   }
 
   // Ends every session on every device (logout). See ADR 002.

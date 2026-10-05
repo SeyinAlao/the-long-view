@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Logger,
   Post,
   Req,
   Res,
@@ -16,6 +17,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
+import { GoogleCallbackGuard } from './guards/google-callback.guard';
 import { OptionalJwtAuthGuard } from './guards/optional-jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import type { SafeUser } from '../users/users.service';
@@ -26,6 +28,8 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private readonly authService: AuthService,
     private readonly config: ConfigService,
@@ -73,15 +77,31 @@ export class AuthController {
   googleAuth() {}
 
   // Google redirects back here after the person approves (or denies)
-  // access. req.user is whatever GoogleStrategy.validate() returned.
+  // access. req.user is whatever GoogleStrategy.validate() returned, or
+  // empty if Google sign-in failed or was refused (GoogleCallbackGuard).
+  // Every outcome ends in a redirect to a page that explains it.
   @Get('google/callback')
-  @UseGuards(GoogleAuthGuard)
+  @UseGuards(GoogleCallbackGuard)
   async googleCallback(@Req() req: Request, @Res() res: Response) {
-    const profile = req.user as GoogleProfile;
-    const { accessToken } = await this.authService.loginWithGoogle(profile);
-    this.setSessionCookie(res, accessToken);
     const frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3000');
-    res.redirect(`${frontendUrl}/dashboard`);
+    const profile = req.user as GoogleProfile | undefined;
+    if (!profile) return res.redirect(`${frontendUrl}/login?error=google`);
+
+    try {
+      const result = await this.authService.loginWithGoogle(profile);
+      if (result.outcome === 'refused') return res.redirect(`${frontendUrl}/login?error=google-link-refused`);
+
+      this.setSessionCookie(res, result.accessToken);
+      const notice = result.passwordCleared ? '?notice=google-now-sign-in' : '';
+      return res.redirect(`${frontendUrl}/dashboard${notice}`);
+    } catch (error) {
+      // Includes a write conflict while linking (Prisma P2034): the
+      // transaction rolled back, so nothing changed and no session was
+      // issued. The name and code only - Prisma messages can quote data.
+      const { name, code } = error as { name?: string; code?: string };
+      this.logger.error(`google_sign_in_failed error=${name ?? 'unknown'} code=${code ?? '-'}`);
+      return res.redirect(`${frontendUrl}/login?error=google`);
+    }
   }
 
   private setSessionCookie(res: Response, token: string) {

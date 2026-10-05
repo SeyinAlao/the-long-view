@@ -55,13 +55,6 @@ export class UsersService {
     });
   }
 
-  async linkGoogleId(userId: string, googleId: string): Promise<RawUser> {
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: { googleId },
-    });
-  }
-
   // Raw lookups — includes passwordHash. Only AuthService should call
   // these, and only to check a password before immediately discarding it.
   async findByEmail(email: string): Promise<RawUser | null> {
