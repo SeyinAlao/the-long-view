@@ -39,10 +39,13 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       return done(new Error('Google account has no email on file'), undefined);
     }
     // Sign-in by Google trusts that Google has verified the address (ADR
-    // 003): an account with this email may be joined to it. Only an
-    // explicit true counts - false or a missing flag is refused. The
-    // library maps Google's email_verified to this field.
-    if (primary?.verified !== true) {
+    // 003): an account with this email may be joined to it. The library
+    // copies Google's email_verified here unchanged (JSON.parse of the
+    // userinfo response). The OpenID Connect standard makes it a boolean,
+    // but Google's own docs show the string "true", so exactly true or
+    // exactly "true" count; false, "false", missing or anything else is
+    // refused.
+    if (!isVerified(primary?.verified)) {
       this.logger.warn('google_sign_in_refused reason=email_not_verified');
       return done(null, false);
     }
@@ -53,4 +56,8 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     };
     done(null, googleProfile);
   }
+}
+
+function isVerified(flag: unknown): boolean {
+  return flag === true || flag === 'true';
 }

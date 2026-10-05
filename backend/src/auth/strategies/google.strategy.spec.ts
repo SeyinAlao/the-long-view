@@ -9,7 +9,7 @@ describe('GoogleStrategy.validate', () => {
   const config = { getOrThrow: (key: string) => `test-${key}` } as unknown as ConfigService;
   const strategy = new GoogleStrategy(config);
 
-  const profileWith = (email: { value: string; verified?: boolean }) =>
+  const profileWith = (email: { value: string; verified?: unknown }) =>
     ({ id: 'g-1', displayName: 'Ana Bello', emails: [email] }) as unknown as Profile;
 
   const run = (profile: Profile) =>
@@ -24,6 +24,20 @@ describe('GoogleStrategy.validate', () => {
     const { user } = await run(profileWith({ value: 'ana@example.com', verified: true }));
     expect(user).toEqual({ googleId: 'g-1', email: 'ana@example.com', name: 'Ana Bello' });
   });
+
+  // Google's OpenID Connect docs show the claim as the string "true".
+  it('accepts the string "true" as verified', async () => {
+    const { user } = await run(profileWith({ value: 'ana@example.com', verified: 'true' }));
+    expect(user).toEqual({ googleId: 'g-1', email: 'ana@example.com', name: 'Ana Bello' });
+  });
+
+  it.each([['false'], ['TRUE'], ['yes'], ['1'], [1], [null]])(
+    'refuses %p - only exactly true or "true" count',
+    async (verified) => {
+      const { user } = await run(profileWith({ value: 'ana@example.com', verified }));
+      expect(user).toBe(false);
+    },
+  );
 
   it('refuses an email Google says is not verified', async () => {
     const { error, user } = await run(profileWith({ value: 'ana@example.com', verified: false }));

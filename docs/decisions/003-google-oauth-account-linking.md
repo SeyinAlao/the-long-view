@@ -51,9 +51,11 @@ decision: a publish that commits in between fails the link (Prisma
 P2034), which ends at the generic "Google sign-in didn't work" with
 nothing changed. Logs carry the user id and reason, never the email.
 
-`GoogleStrategy` also requires Google's `email_verified` to be exactly
-true (passport-google-oauth20 maps it to `emails[0].verified`); false or
-missing is refused.
+`GoogleStrategy` also requires Google's `email_verified` to say verified
+(passport-google-oauth20 copies it unchanged to `emails[0].verified`):
+exactly `true`, or exactly the string `"true"`, which is how Google's own
+OpenID Connect docs show it (the standard says boolean). False, `"false"`,
+missing or any other value is refused.
 
 Email verification at password sign-up (after launch) would remove the
 underlying gap. Until then, a refused person who can't sign in with the

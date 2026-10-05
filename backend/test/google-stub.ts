@@ -4,7 +4,7 @@ import { GoogleStrategy } from '../src/auth/strategies/google.strategy';
 export interface StubbedGoogleProfile {
   id: string;
   email: string;
-  verified?: boolean;
+  verified?: boolean | string;
 }
 
 // Replaces only Google's two network calls on the real strategy - the
