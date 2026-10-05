@@ -78,6 +78,11 @@ at staging. The test backend always runs with `DISABLE_SCHEDULED_JOBS=true`.
 - `safeNextPath` guards every post-sign-in redirect (open-redirect fix).
 - Emails are stored lowercased (`normaliseEmail`) in a `citext` column; one
   address is one account in any letter case.
+- Google sign-in joins an existing account only through `GoogleLinkService`
+  (ADR 003): never onto a different Google id; never onto a password account
+  with public activity (`PublicActivityService` - extend it when comments or
+  reactions ship); otherwise it removes the password and ends all sessions,
+  in one Serializable transaction. Only verified Google emails are accepted.
 - Session tokens carry the user's `sessionVersion` (`sv`); signing out raises
   it and ends every session on every device (ADR 002). The cookie stays
   explicitly `SameSite=Lax`: it is what stops a cross-site sign-out.

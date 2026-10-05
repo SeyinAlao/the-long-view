@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, Profile, VerifyCallback } from 'passport-google-oauth20';
 import { ConfigService } from '@nestjs/config';
@@ -11,6 +11,8 @@ export interface GoogleProfile {
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
+  private readonly logger = new Logger(GoogleStrategy.name);
+
   constructor(config: ConfigService) {
     super({
       // getOrThrow, not get() with a fallback: if these are ever missing
@@ -31,9 +33,18 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     profile: Profile,
     done: VerifyCallback,
   ) {
-    const email = profile.emails?.[0]?.value;
+    const primary = profile.emails?.[0];
+    const email = primary?.value;
     if (!email) {
       return done(new Error('Google account has no email on file'), undefined);
+    }
+    // Sign-in by Google trusts that Google has verified the address (ADR
+    // 003): an account with this email may be joined to it. Only an
+    // explicit true counts - false or a missing flag is refused. The
+    // library maps Google's email_verified to this field.
+    if (primary?.verified !== true) {
+      this.logger.warn('google_sign_in_refused reason=email_not_verified');
+      return done(null, false);
     }
     const googleProfile: GoogleProfile = {
       googleId: profile.id,

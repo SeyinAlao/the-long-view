@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { randomInt } from 'crypto';
 import { normaliseEmail } from './normalise-email';
 
 export interface CreateUserInput {
@@ -55,13 +56,6 @@ export class UsersService {
     });
   }
 
-  async linkGoogleId(userId: string, googleId: string): Promise<RawUser> {
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: { googleId },
-    });
-  }
-
   // Raw lookups — includes passwordHash. Only AuthService should call
   // these, and only to check a password before immediately discarding it.
   async findByEmail(email: string): Promise<RawUser | null> {
@@ -103,7 +97,7 @@ export class UsersService {
     let attempt = 0;
     while (await this.findByUsername(candidate)) {
       attempt += 1;
-      candidate = `${base}${Math.floor(Math.random() * 10000)}`;
+      candidate = `${base}${randomInt(10_000)}`;
       if (attempt > 20) {
         // Astronomically unlikely, but never loop forever.
         candidate = `${base}${Date.now()}`;

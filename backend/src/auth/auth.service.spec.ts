@@ -1,8 +1,9 @@
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Logger, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
+import { GoogleLinkService } from '../users/google-link.service';
 
 describe('AuthService', () => {
   let authService: AuthService;
@@ -18,7 +19,11 @@ describe('AuthService', () => {
     };
     jwtService = { sign: jest.fn().mockReturnValue('signed.jwt.token') };
 
-    authService = new AuthService(usersService as unknown as UsersService, jwtService as unknown as JwtService);
+    authService = new AuthService(
+      usersService as unknown as UsersService,
+      jwtService as unknown as JwtService,
+      {} as GoogleLinkService,
+    );
   });
 
   describe('register', () => {
@@ -152,11 +157,9 @@ describe('AuthService', () => {
 describe('AuthService.loginWithGoogle', () => {
   let authService: AuthService;
   let usersService: jest.Mocked<
-    Pick<
-      UsersService,
-      'findByGoogleId' | 'findByEmail' | 'linkGoogleId' | 'generateUsernameFromEmail' | 'create' | 'toSafeUser'
-    >
+    Pick<UsersService, 'findByGoogleId' | 'findByEmail' | 'generateUsernameFromEmail' | 'create' | 'toSafeUser'>
   >;
+  let googleLink: jest.Mocked<Pick<GoogleLinkService, 'link'>>;
   let jwtService: jest.Mocked<Pick<JwtService, 'sign'>>;
 
   const googleProfile = { googleId: 'g-123', email: 'seyin@example.com', name: 'Seyin Alao' };
@@ -176,41 +179,55 @@ describe('AuthService.loginWithGoogle', () => {
     usersService = {
       findByGoogleId: jest.fn(),
       findByEmail: jest.fn(),
-      linkGoogleId: jest.fn(),
       generateUsernameFromEmail: jest.fn(),
       create: jest.fn(),
-      toSafeUser: jest.fn(),
+      toSafeUser: jest.fn().mockReturnValue(safeUser),
     };
+    googleLink = { link: jest.fn() };
     jwtService = { sign: jest.fn().mockReturnValue('signed.jwt.token') };
-    authService = new AuthService(usersService as unknown as UsersService, jwtService as unknown as JwtService);
-    usersService.toSafeUser.mockReturnValue(safeUser);
+    authService = new AuthService(
+      usersService as unknown as UsersService,
+      jwtService as unknown as JwtService,
+      googleLink as unknown as GoogleLinkService,
+    );
   });
 
-  it('logs in directly when this Google id has signed in before', async () => {
-    usersService.findByGoogleId.mockResolvedValue({ ...safeUser, passwordHash: null, googleId: 'g-123' } as any);
-    usersService.toSafeUser.mockReturnValue(safeUser);
+  it('signs in directly when this Google id has signed in before', async () => {
+    usersService.findByGoogleId.mockResolvedValue(rawUser);
 
     const result = await authService.loginWithGoogle(googleProfile);
 
     expect(usersService.findByEmail).not.toHaveBeenCalled();
-    expect(usersService.create).not.toHaveBeenCalled();
-    expect(result.user).toEqual(safeUser);
+    expect(googleLink.link).not.toHaveBeenCalled();
+    expect(result).toEqual({ outcome: 'signed_in', user: safeUser, accessToken: 'signed.jwt.token', passwordCleared: false });
   });
 
-  it('links the Google id onto an existing password account with the same email, rather than duplicating it', async () => {
+  it('hands an existing account with this email to GoogleLinkService, and signs in when it links', async () => {
     usersService.findByGoogleId.mockResolvedValue(null);
-    usersService.findByEmail.mockResolvedValue({
-      ...safeUser,
-      passwordHash: 'some-existing-hash',
-      googleId: null,
-    } as any);
-    usersService.linkGoogleId.mockResolvedValue(rawUser);
+    usersService.findByEmail.mockResolvedValue({ ...rawUser, googleId: null, passwordHash: 'hash' });
+    googleLink.link.mockResolvedValue({ outcome: 'linked', user: { ...rawUser, sessionVersion: 1 }, passwordCleared: true });
 
     const result = await authService.loginWithGoogle(googleProfile);
 
-    expect(usersService.linkGoogleId).toHaveBeenCalledWith('user_1', 'g-123');
+    expect(googleLink.link).toHaveBeenCalledWith('user_1', 'g-123');
     expect(usersService.create).not.toHaveBeenCalled();
-    expect(result.user).toEqual(safeUser);
+    expect(result).toMatchObject({ outcome: 'signed_in', passwordCleared: true });
+    // The new token carries the raised session version.
+    expect(jwtService.sign).toHaveBeenCalledWith({ sub: 'user_1', email: 'seyin@example.com', sv: 1 });
+  });
+
+  it('returns refused, issues no token, and logs only the user id and reason', async () => {
+    const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    usersService.findByGoogleId.mockResolvedValue(null);
+    usersService.findByEmail.mockResolvedValue({ ...rawUser, googleId: null, passwordHash: 'hash' });
+    googleLink.link.mockResolvedValue({ outcome: 'refused', reason: 'published_work' });
+
+    const result = await authService.loginWithGoogle(googleProfile);
+
+    expect(result).toEqual({ outcome: 'refused' });
+    expect(jwtService.sign).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith('google_link_refused userId=user_1 reason=published_work');
+    warn.mockRestore();
   });
 
   it('creates a brand new, passwordless account for a genuinely new person', async () => {
@@ -228,6 +245,6 @@ describe('AuthService.loginWithGoogle', () => {
       googleId: 'g-123',
       passwordHash: null,
     });
-    expect(result.user).toEqual(safeUser);
+    expect(result).toMatchObject({ outcome: 'signed_in', user: safeUser, passwordCleared: false });
   });
 });
