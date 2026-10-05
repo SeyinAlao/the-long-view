@@ -9,11 +9,13 @@ import { newAccount, signUpWithApi } from '../support/accounts';
 const REFUSED =
   "An account with this email already has published work, so Google sign-in can't be added to it. Sign in with your email and password.";
 const FAILED = "Google sign-in didn't work. Try again, or sign in with your email and password.";
+const BUSY = 'Too many sign-in attempts from your network. Wait a few minutes, then try again.';
 const NOTICE = 'Google is now how you sign in. Your old password no longer works. Your drafts are still here.';
 
 for (const [code, message] of [
   ['google-link-refused', REFUSED],
   ['google', FAILED],
+  ['google-busy', BUSY],
 ] as const) {
   test(`/login?error=${code} explains what happened`, async ({ page }) => {
     await page.goto(`/login?error=${code}`);

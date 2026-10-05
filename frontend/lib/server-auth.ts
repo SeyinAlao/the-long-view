@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import type { SafeUser } from './auth';
 import { BACKEND_URL, backendTimeoutSignal } from './backend-url';
+import { serverEdgeHeaders } from './edge-headers';
 
 // null means signed out: no cookie, or the backend rejected it (401).
 // Anything else - the API down, a 500, the timeout - throws, so a
@@ -15,7 +16,7 @@ export async function getCurrentUserServer(): Promise<SafeUser | null> {
   }
 
   const res = await fetch(`${BACKEND_URL}/auth/me`, {
-    headers: { cookie: `session_token=${sessionCookie.value}` },
+    headers: { cookie: `session_token=${sessionCookie.value}`, ...serverEdgeHeaders() },
     cache: 'no-store',
     signal: backendTimeoutSignal(),
   });

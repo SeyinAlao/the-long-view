@@ -9,6 +9,7 @@ const MESSAGES: Record<string, string> = {
   'google-link-refused':
     "An account with this email already has published work, so Google sign-in can't be added to it. Sign in with your email and password.",
   google: "Google sign-in didn't work. Try again, or sign in with your email and password.",
+  'google-busy': 'Too many sign-in attempts from your network. Wait a few minutes, then try again.',
 };
 
 export function GoogleSignInError() {

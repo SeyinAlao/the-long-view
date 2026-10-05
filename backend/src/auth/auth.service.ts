@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { UsersService, SafeUser, RawUser } from '../users/users.service';
@@ -6,6 +6,7 @@ import { GoogleLinkService } from '../users/google-link.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { GoogleProfile } from './strategies/google.strategy';
+import { LoginFailedException } from './login-failed.exception';
 
 const SALT_ROUNDS = 10;
 
@@ -53,21 +54,22 @@ export class AuthService {
     // Deliberately the same error for "no such user" and "wrong password" —
     // distinguishing them would let a caller enumerate valid emails.
     if (!record) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new LoginFailedException('unknown_email');
     }
 
     // A Google-only account has no passwordHash to compare against.
     // bcrypt.compare against null would throw an ugly, unrelated error —
     // this gives the person a straight answer instead.
     if (!record.passwordHash) {
-      throw new UnauthorizedException(
+      throw new LoginFailedException(
+        'google_only',
         'This account uses Google sign-in. Use "Continue with Google" instead.',
       );
     }
 
     const passwordMatches = await bcrypt.compare(dto.password, record.passwordHash);
     if (!passwordMatches) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new LoginFailedException('bad_password');
     }
 
     return this.issueSession(record);

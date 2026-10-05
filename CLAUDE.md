@@ -97,6 +97,13 @@ at staging. The test backend always runs with `DISABLE_SCHEDULED_JOBS=true`.
   loads `backend/.env`, which is production). docs/deployment.md.
 - Signing in or out clears the TanStack Query cache and the unsaved-draft
   autosave (account switching on a shared browser).
+- Rate limits (ADR 010): the API never reads `X-Forwarded-For`,
+  `X-Real-IP` or `req.ip`. The client IP comes only from
+  `x-tlv-client-ip` on a request carrying `EDGE_PROXY_KEY`, which
+  `proxy.ts` adds to every `/api` call (after dropping any `x-tlv-*` the
+  browser sent) and server-side fetches send too. Every limit number
+  lives in `backend/src/security/rate-limits.ts`. Security log lines go
+  through `SecurityLog` only: refs, never emails, IPs, tokens or messages.
 - In-process cron jobs are off when `DISABLE_SCHEDULED_JOBS=true` (Render).
 - NGX trading hours are 9:00am-4:00pm WAT since 27 April 2026. Don't assume
   the old 2:30pm close anywhere.
@@ -142,18 +149,17 @@ FRONTEND_URL / CORS_ORIGIN / GOOGLE_CALLBACK_URL and Google's OAuth URIs.
    kept **outside this repo** until its findings are fixed: never put open
    findings in commits, PRs or docs here. Done: GitHub scanning on (CodeQL,
    Dependabot alerts, secret scanning), `master` ruleset (PR + all three CI
-   jobs), error pages (PR #30), read-only CI token (PR #31). Order from
-   here (details in docs/backlog.md):
-   1. Auth PR 1: case-insensitive email (`citext`) + session revocation
-      (`sessionVersion`); one migration, applied to staging by hand
-      **before** the code merges.
-   2. Auth PR 2: Google account linking (amends ADR 003); clears CodeQL
-      #5 and #6.
-   3. Auth PR 3: OAuth `state` cookie + return to where you were.
-   4. G3 rate limiting, G4 security headers, G5 edge caching for Ledger
+   jobs), error pages (PR #30), read-only CI token (PR #31), the three
+   auth PRs (#33 citext + session revocation, #34/#35 Google account
+   linking, #37 OAuth `state` + return path). Order from here (details
+   in docs/backlog.md):
+   1. G3 rate limiting + F-08 security logging (ADR 010). Set
+      `EDGE_PROXY_KEY` on Render and Vercel **before** it merges, then
+      check and enforce (docs/deployment.md, "The edge key").
+   2. G4 security headers, G5 edge caching for Ledger
       and Leaderboard, G2 uptime monitor on `/health/live`, G6 a rehearsed
       rollback on Vercel and Render - in that order.
-   5. Remaining audit items: staging ramp (policies cited, abort
+   3. Remaining audit items: staging ramp (policies cited, abort
       conditions, tell Seyin before it starts), NDPA gap list, one-page
       SOC 2 checklist, performance audit.
    All High findings are fixed before stage 1 of the rollout.
@@ -180,7 +186,7 @@ FRONTEND_URL / CORS_ORIGIN / GOOGLE_CALLBACK_URL and Google's OAuth URIs.
   and "client.query() while already executing" in e2e.
 - 7 lint warnings (`any`) in the backend.
 - Google sign-in returning people to where they were (signed OAuth `state`
-  + safeNextPath) - now scheduled as auth PR 3.
+  + safeNextPath) - done in PR #37.
 - The story/teaser sharing feature.
 - One shared style for form fields (copy-pasted across six files).
 - Keep the API awake, or accept the ~46 s cold start - decided: the uptime
