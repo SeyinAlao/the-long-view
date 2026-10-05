@@ -26,11 +26,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: { sub: string; email: string }) {
-    const user = await this.usersService.findById(payload.sub);
-    if (!user) {
+  // The token must still carry the user's current session version. A
+  // token without one predates session revocation and is refused too, so
+  // every token issued before it shipped stopped working (ADR 002).
+  async validate(payload: { sub: string; email: string; sv?: number }) {
+    const found = await this.usersService.findSessionUser(payload.sub);
+    if (!found) {
       throw new UnauthorizedException('User no longer exists');
     }
-    return user;
+    if (payload.sv !== found.sessionVersion) {
+      throw new UnauthorizedException('This session has ended. Sign in again.');
+    }
+    return found.user;
   }
 }
