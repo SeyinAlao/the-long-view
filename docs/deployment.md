@@ -70,6 +70,25 @@ Remove-Item Env:\DIRECT_URL
 
 Never run `prisma migrate reset`, `prisma db push --force-reset` or the e2e tests against staging or production. The e2e tests refuse to run unless the database name contains `test`.
 
+## Running the tests locally
+
+The backend e2e tests and the browser tests both wipe their database, so they run against a **local** Postgres 18, not over the internet. CI is the authoritative run; this is for checking before you push.
+
+**One-time setup** (Windows):
+
+1. Install the server: `winget install PostgreSQL.PostgreSQL.18 --override "--mode unattended --superpassword <password> --serverport 5432 --enable-components server,commandlinetools"`, then make it listen on this machine only: `psql -U postgres -h localhost -c "ALTER SYSTEM SET listen_addresses = 'localhost'"` and `Restart-Service postgresql-x64-18`.
+2. Create the database: `psql -U postgres -h localhost -c "CREATE DATABASE the_long_view_test"`.
+3. Create `backend/.env.test.local` with one line, `DATABASE_URL=postgresql://postgres:<password>@localhost:5432/the_long_view_test`. It is gitignored (`.env*.local`); check `git status` doesn't list it.
+4. Migrate and seed it once, from `backend/`, with both variables pointed at it (Prisma's config also reads `backend/.env`, which is a real database):
+   `$env:DATABASE_URL="<that URL>"; $env:DIRECT_URL=$env:DATABASE_URL; npx prisma migrate deploy; npm run db:seed; Remove-Item Env:\DATABASE_URL, Env:\DIRECT_URL`
+5. Install Playwright's browser: `cd e2e; npx playwright install chromium`.
+
+**Running:**
+
+- Backend e2e: `npm run test:e2e` in `backend/` (about 10 s). It reads `backend/.env.test.local`, in the guard and in every test worker, and turns the in-process scheduled jobs off.
+- Browser tests: `npm run test:browser` from the repo root (about 1.5 min, most of it building). It migrates and seeds the test database, builds and starts the API, a relay and the frontend, and runs Playwright. For quick reruns without code changes, `$env:E2E_SKIP_BUILD="1"` reuses the last build. A failure leaves a trace in `e2e/test-results/`: `npx playwright show-trace <path>`.
+- A `DATABASE_URL` already set in the shell wins over the file, so the Neon `test` branch still works as a fallback.
+
 ## Setting up an environment, in order
 
 1. **Neon:** create the branch (schema only), then seed the companies: `$env:DATABASE_URL="<pooled URL>"; npx ts-node prisma/seed.ts`.
