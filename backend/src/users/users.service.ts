@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { randomInt } from 'crypto';
 import { normaliseEmail } from './normalise-email';
 
 export interface CreateUserInput {
@@ -96,7 +97,7 @@ export class UsersService {
     let attempt = 0;
     while (await this.findByUsername(candidate)) {
       attempt += 1;
-      candidate = `${base}${Math.floor(Math.random() * 10000)}`;
+      candidate = `${base}${randomInt(10_000)}`;
       if (attempt > 20) {
         // Astronomically unlikely, but never loop forever.
         candidate = `${base}${Date.now()}`;
