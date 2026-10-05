@@ -76,6 +76,14 @@ at staging. The test backend always runs with `DISABLE_SCHEDULED_JOBS=true`.
 - `proxy.ts` only checks a session cookie exists on protected pages; each page
   verifies the session itself. /login and /signup do verify (prevents a loop).
 - `safeNextPath` guards every post-sign-in redirect (open-redirect fix).
+- Emails are stored lowercased (`normaliseEmail`) in a `citext` column; one
+  address is one account in any letter case.
+- Session tokens carry the user's `sessionVersion` (`sv`); signing out raises
+  it and ends every session on every device (ADR 002). The cookie stays
+  explicitly `SameSite=Lax`: it is what stops a cross-site sign-out.
+- Prisma migrations run without a transaction: wrap multi-statement ones in
+  `BEGIN; ... COMMIT;`, and always set `DIRECT_URL` first (prisma.config.ts
+  loads `backend/.env`, which is production). docs/deployment.md.
 - Signing in or out clears the TanStack Query cache and the unsaved-draft
   autosave (account switching on a shared browser).
 - In-process cron jobs are off when `DISABLE_SCHEDULED_JOBS=true` (Render).
