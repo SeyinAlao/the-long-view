@@ -1,5 +1,5 @@
 import { test, expect } from '../support/fixtures';
-import { RELAY_URL } from '../support/env';
+import { setRelay } from '../support/relay-control';
 
 // Render's free API sleeps; the first visitor waits ~46s. The relay
 // imitates that by holding every API request for 12s, server-side
@@ -11,7 +11,7 @@ test('a slow API shows a skeleton at once, a "Still loading" line after ~8s, the
   request,
 }) => {
   test.setTimeout(40_000);
-  await request.post(`${RELAY_URL}/__relay?delayMs=${DELAY_MS}`);
+  await setRelay(request, `delayMs=${DELAY_MS}`);
   const started = Date.now();
   await page.goto('/feed', { waitUntil: 'commit' });
 

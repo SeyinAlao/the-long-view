@@ -39,7 +39,9 @@ if (!/test/i.test(databaseName)) {
 export const FRONTEND_PORT = 3000;
 export const BACKEND_PORT = 4000;
 export const RELAY_PORT = 4100;
-export const RELAY_URL = `http://localhost:${RELAY_PORT}`;
+// 127.0.0.1, not localhost: the relay listens on IPv4 only, and "localhost"
+// can resolve to ::1 first.
+export const RELAY_URL = `http://127.0.0.1:${RELAY_PORT}`;
 
 // The frontend's server-side wait for the API (lib/backend-url.ts),
 // shortened from production's 90s so the timeout can be tested. Still

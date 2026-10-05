@@ -1,6 +1,7 @@
-import type { APIRequestContext, Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { test, expect } from '../support/fixtures';
-import { RELAY_URL, API_TIMEOUT_MS } from '../support/env';
+import { API_TIMEOUT_MS } from '../support/env';
+import { setRelay as relay } from '../support/relay-control';
 import { addPrice } from '../support/db';
 import { expectNoAxeViolations } from '../support/a11y';
 import { newAccount } from '../support/accounts';
@@ -10,7 +11,6 @@ import { createThesis } from '../support/theses-api';
 // the normal layout - header and navigation still there - and "Try
 // again" recovers once the API is back. A waking API is not a failure:
 // the skeleton stays up until the server-side timeout.
-const relay = (request: APIRequestContext, query: string) => request.post(`${RELAY_URL}/__relay?${query}`);
 const errorHeading = (page: Page) => page.getByRole('heading', { name: "This page couldn't load." });
 
 const PAGES = [
