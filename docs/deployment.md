@@ -80,7 +80,9 @@ Two things to know before any migration (both checked on 5 October 2026 with Pri
 
 **Apply this before the code that needs it merges**: the new code reads `sessionVersion`, so it fails against a database without it. Old code keeps working on the migrated database with one exception: the migration lowercases stored emails, and old code looks emails up exactly, so someone whose stored email had capitals can't sign in until the new code deploys, minutes later. Fine on staging; production starts clean.
 
-If the target's migration ledger is empty (staging's is: see "Baselining" below), baseline it first; the steps below include that. From `backend/`, in PowerShell, with this change checked out (before merge: `git switch fix/auth-email-sessions`):
+If the target's migration ledger is empty (staging's is: see "Baselining" below), baseline it first; the steps below include that. From `backend/`, in PowerShell, with this change checked out (before merge: `git switch fix/auth-email-sessions`). Every psql check is a file in `prisma/checks/`, run with `-f` (PowerShell strips the quotes table names need from `-c`), and each sets its session read-only.
+
+What staging needs, found with the read-only diff on 5 October 2026: its schema matches the first **three** migrations exactly; migration 4 (`20260927160000_counter_thesis_unique`, one unique index on `CounterThesis("thesisId", "authorId")`) was never applied. So: record three as applied, and let `migrate deploy` run migrations 4 and 5.
 
 1. **Host check.** Load the target's **direct** URL into this window only, and check where it points before anything else:
    ```
@@ -89,44 +91,69 @@ If the target's migration ledger is empty (staging's is: see "Baselining" below)
    $u = [uri]$env:DIRECT_URL; "$($u.Host)  $($u.AbsolutePath)"
    ```
    For staging it must print a host starting `ep-bold-sky-a5oday2y.`, with no `-pooler`, and `/neondb`. Anything else: stop.
-2. **Read-only status:** `npx prisma migrate status`. If it lists only `20261005120000_...` as not yet applied, skip to step 6. If it lists all five, the ledger is empty: continue.
-3. **Baselining, read-only check:** confirm the target's schema is exactly what the first four migrations produce. `migrate diff` only reads the target; it replays the migrations into a throwaway **local** shadow database, which Prisma wipes (prisma.config.ts refuses one without "shadow" in its name):
+2. **Read-only status and ledger:**
    ```
-   & $psql "postgresql://postgres:<local password>@localhost:5432/postgres" -c "CREATE DATABASE the_long_view_shadow"
+   npx prisma migrate status
+   & $psql $env:DIRECT_URL -f prisma\checks\migration-ledger.sql
+   ```
+   If the ledger lists the first four, skip to step 6. If it is empty (status lists all five), continue.
+3. **Read-only diffs.** `migrate diff` only reads the target; it replays migrations into a throwaway **local** shadow database, which Prisma wipes (prisma.config.ts refuses one without "shadow" in its name):
+   ```
+   & $psql "postgresql://postgres:<local password>@localhost:5432/postgres" -c "CREATE DATABASE the_long_view_shadow"   # "already exists" is fine
    $env:SHADOW_DATABASE_URL = "postgresql://postgres:<local password>@localhost:5432/the_long_view_shadow"
-   $four = Join-Path $env:TEMP "tlv-first-four"
-   Remove-Item $four -Recurse -Force -ErrorAction SilentlyContinue
+   $four = Join-Path $env:TEMP "tlv-first-four"; $three = Join-Path $env:TEMP "tlv-first-three"
+   Remove-Item $four, $three -Recurse -Force -ErrorAction SilentlyContinue
    Copy-Item prisma\migrations $four -Recurse
    Remove-Item (Join-Path $four "20261005120000_case_insensitive_email_session_version") -Recurse
-   npx prisma migrate diff --from-config-datasource --to-migrations $four --exit-code
+   Copy-Item $four $three -Recurse
+   Remove-Item (Join-Path $three "20260927160000_counter_thesis_unique") -Recurse
+
+   # a) Against the first four, as SQL: what the target lacks
+   npx prisma migrate diff --from-config-datasource --to-migrations $four --script --exit-code
    "exit code: $LASTEXITCODE"
+   Get-Content prisma\migrations\20260927160000_counter_thesis_unique\migration.sql
+
+   # b) Against the first three: must match exactly
+   npx prisma migrate diff --from-config-datasource --to-migrations $three --exit-code
+   "exit code: $LASTEXITCODE"
+
    Remove-Item Env:\SHADOW_DATABASE_URL
    ```
-   It must print `No difference detected.` and `exit code: 0`. Exit code 2 means the schema differs: stop, and keep the printed summary (it lists tables and indexes, no data).
+   a) must print `exit code: 2` and exactly one statement, `CREATE UNIQUE INDEX "CounterThesis_thesisId_authorId_key" ON "public"."CounterThesis"("thesisId" ASC, "authorId" ASC);` - the same index as migration 4's file (Prisma adds the schema name and `ASC`, both defaults). b) must print `No difference detected.` and `exit code: 0`. Anything else: stop, and keep the output (structure only, no data).
 4. **Snapshot:** in the Neon console, create a branch from the target (for example `staging-before-auth-1` from `staging`). Free and instant; it is the way back. Every step from here writes.
-5. **Baselining, record the four as applied.** This only writes rows to `_prisma_migrations`; it runs no SQL from them:
+5. **Baselining, record the first three as applied.** This only writes rows to `_prisma_migrations`; it runs none of their SQL:
    ```
-   foreach ($m in "20260911014512_init", "20260918103000_add_google_oauth", "20260925160000_nullable_reference_price", "20260927160000_counter_thesis_unique") { npx prisma migrate resolve --applied $m }
+   foreach ($m in "20260911014512_init", "20260918103000_add_google_oauth", "20260925160000_nullable_reference_price") { npx prisma migrate resolve --applied $m }
    npx prisma migrate status
    ```
-   Status must now list only `20261005120000_case_insensitive_email_session_version` as not yet applied.
-6. **Duplicate-email check.** Read-only; it must print `(0 rows)`:
+   Status must now list exactly `20260927160000_counter_thesis_unique` and `20261005120000_case_insensitive_email_session_version` as not yet applied.
+6. **Read-only duplicate checks.** Both must print `(0 rows)`:
    ```
-   & $psql $env:DIRECT_URL -c 'SELECT lower(email) AS email, count(*) FROM "User" GROUP BY lower(email) HAVING count(*) > 1;'
+   & $psql $env:DIRECT_URL -f prisma\checks\duplicate-counter-theses.sql
+   & $psql $env:DIRECT_URL -f prisma\checks\duplicate-emails.sql
    ```
-   If it prints rows, stop: decide which account to keep first. The migration refuses to run in that case anyway, and changes nothing.
-7. **Apply:** `npx prisma migrate deploy` (applies only the one migration).
-8. **Verify:** `npx prisma migrate status` says the database is up to date, and `& $psql $env:DIRECT_URL -c '\d "User"'` shows `email | citext` and `sessionVersion | integer | not null default 0`.
-9. If step 7 failed: nothing was applied. Run `npx prisma migrate resolve --rolled-back 20261005120000_case_insensitive_email_session_version`, fix the cause, and go back to step 6.
+   Rows from the first: an author has more than one counter-thesis on one thesis, and migration 4's unique index would fail. Rows from the second: emails differing only by case, and migration 5 refuses. Either way, stop and decide what to keep first.
+7. **Apply:** `npx prisma migrate deploy` (applies migrations 4 and 5, in order).
+8. **Verify:**
+   ```
+   npx prisma migrate status
+   & $psql $env:DIRECT_URL -f prisma\checks\migration-ledger.sql
+   & $psql $env:DIRECT_URL -f prisma\checks\counter-thesis-indexes.sql
+   & $psql $env:DIRECT_URL -f prisma\checks\user-columns.sql
+   ```
+   Status says up to date; the ledger lists five, all with `finished_at`; the indexes include `CounterThesis_thesisId_authorId_key`; `email` is `citext` and `sessionVersion` is `int4`, default `0`.
+9. **If step 7 failed,** the ledger shows which migration has no `finished_at` (`migrate status` doesn't say clearly). Nothing of that migration was applied (4 is one statement; 5 runs in a transaction), but anything before it was. Run `npx prisma migrate resolve --rolled-back <that migration's folder name>`, fix the cause, and go back to step 6.
 10. `Remove-Item Env:\DIRECT_URL`. Then merge the code. When the API redeploys, every existing session ends (tokens issued before this carry no session version), so everyone signs in once.
 
-This whole sequence was rehearsed on 5 October 2026 against a local copy built the way staging is (the first four migrations' tables, some rows, an empty `_prisma_migrations`): status listed all five, the diff found no difference (and exit code 2 when an index was dropped to test it), the four were recorded, only the new migration ran, and the ledger ended with five finished rows.
+Rehearsed on 5 October 2026 against a local database built the way staging is (the first four migrations' tables, with that index dropped, some rows, an empty `_prisma_migrations`): status listed all five; diff (a) printed exactly that index with exit code 2, and (b) no difference; the three were recorded; both duplicate checks returned 0 rows; deploy applied 4 then 5; the ledger ended with five finished rows. The failure path was rehearsed too: with a duplicate counter-thesis, migration 4 failed on the index, `resolve --rolled-back` plus removing the duplicate let the next deploy apply 4 and 5. The read-only session setting in the check files was confirmed to refuse a `DELETE`.
+
+**Production (read-only check, 5 October 2026):** its ledger records the first three migrations, all finished, and it has the same missing index (0 duplicate pairs). It needs no baselining: `migrate deploy` would apply 4 and 5. It is to be replaced by a clean database at go-live anyway.
 
 ### Baselining: tables exist but the migration ledger is empty
 
 `prisma migrate status` listing **every** migration as not yet applied, on a database whose tables exist, means `_prisma_migrations` is empty. A Neon **schema-only branch** does this: it copies every table's structure and no rows, the ledger included (Neon docs: "Schema-only branches"). That is how `staging` was created. Never run `migrate deploy` on such a database before baselining: it would try to create tables that already exist.
 
-Baselining tells Prisma which migrations the schema already reflects: a read-only `migrate diff` against the migrations it should match (step 3 above), then `migrate resolve --applied <name>` once per migration (step 5). See Prisma's "Baselining a database" guide.
+Baselining tells Prisma which migrations the schema already reflects: read-only `migrate diff`s find exactly which ones that is (step 3 above - for staging, the first three, not four), then `migrate resolve --applied <name>` once per migration (step 5). Never record a migration as applied without a diff showing the schema already has it. See Prisma's "Baselining a database" guide.
 
 ### Creating a clean database (go-live)
 
