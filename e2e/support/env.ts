@@ -52,3 +52,8 @@ export const API_TIMEOUT_MS = 20_000;
 // accepts Google endpoint overrides on 127.0.0.1.
 export const FAKE_GOOGLE_PORT = 4200;
 export const FAKE_GOOGLE_URL = `http://127.0.0.1:${FAKE_GOOGLE_PORT}`;
+
+// The edge key (ADR 010), the same on both servers, with the API
+// enforcing it as production will: every browser call goes through the
+// frontend's proxy.ts, which adds it. A fixed test value, not a secret.
+export const EDGE_PROXY_KEY = 'e2e-edge-key-not-a-secret-0123456789abcdef';

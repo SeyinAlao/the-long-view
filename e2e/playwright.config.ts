@@ -3,6 +3,7 @@ import {
   API_TIMEOUT_MS,
   BACKEND_PORT,
   DATABASE_URL,
+  EDGE_PROXY_KEY,
   FAKE_GOOGLE_PORT,
   FAKE_GOOGLE_URL,
   FRONTEND_PORT,
@@ -46,6 +47,8 @@ const backendEnv = {
   GOOGLE_TOKEN_URL: `${FAKE_GOOGLE_URL}/token`,
   GOOGLE_USERINFO_URL: `${FAKE_GOOGLE_URL}/userinfo`,
   PUPPETEER_SKIP_DOWNLOAD: 'true',
+  EDGE_PROXY_KEY,
+  EDGE_PROXY_ENFORCE: 'true',
 };
 
 export default defineConfig({
@@ -92,7 +95,12 @@ export default defineConfig({
       cwd: '../frontend',
       command: `${build}npm run start -- --port ${FRONTEND_PORT}`,
       url: `http://localhost:${FRONTEND_PORT}`,
-      env: { BACKEND_URL: RELAY_URL, API_TIMEOUT_MS: String(API_TIMEOUT_MS), NEXT_TELEMETRY_DISABLED: '1' },
+      env: {
+        BACKEND_URL: RELAY_URL,
+        API_TIMEOUT_MS: String(API_TIMEOUT_MS),
+        NEXT_TELEMETRY_DISABLED: '1',
+        EDGE_PROXY_KEY,
+      },
       // Shown, not discarded: the log proves which Next.js version was
       // built and that it ran as a production build (next build + next
       // start, as on Vercel) - and explains a failed build in CI.

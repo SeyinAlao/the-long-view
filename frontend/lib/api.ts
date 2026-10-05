@@ -1,4 +1,5 @@
 import { BACKEND_URL, backendTimeoutSignal } from './backend-url';
+import { serverEdgeHeaders } from './edge-headers';
 
 // In the browser, always this app's own /api path (forwarded to the
 // backend by next.config's rewrites), so the session cookie stays
@@ -17,6 +18,8 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
+      // On the server only: the browser's calls get these in proxy.ts.
+      ...(onServer() ? serverEdgeHeaders() : {}),
       ...init?.headers,
     },
   });

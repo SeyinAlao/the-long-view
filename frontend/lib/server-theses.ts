@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import type { Thesis } from './theses';
 import { BACKEND_URL, backendTimeoutSignal } from './backend-url';
+import { serverEdgeHeaders } from './edge-headers';
 
 // Server Component-only, same pattern as getCurrentUserServer in
 // lib/server-auth.ts — reads the incoming request's session cookie
@@ -17,7 +18,10 @@ export async function getThesisServer(id: string): Promise<Thesis | null> {
   const sessionCookie = cookieStore.get('session_token');
 
   const res = await fetch(`${BACKEND_URL}/theses/${encodeURIComponent(id)}`, {
-    headers: sessionCookie ? { cookie: `session_token=${sessionCookie.value}` } : {},
+    headers: {
+      ...(sessionCookie ? { cookie: `session_token=${sessionCookie.value}` } : {}),
+      ...serverEdgeHeaders(),
+    },
     cache: 'no-store',
     signal: backendTimeoutSignal(),
   });
