@@ -33,7 +33,7 @@ jobs:
         working-directory: backend
     services:
       postgres:
-        image: postgres:16
+        image: postgres:18
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -77,3 +77,56 @@ jobs:
       - run: npm test
       - run: npm run test:e2e
       - run: npm run build
+
+  browser:
+    name: Browser tests (Playwright, WCAG 2.2 AA)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: the_long_view_browser_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d the_long_view_browser_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/the_long_view_browser_test?schema=public
+      # The browser tests never fetch from NGX, so Puppeteer's own
+      # Chromium download would be wasted time. Playwright installs the
+      # one browser these tests use, below.
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck --workspace=e2e
+      - name: Cache Playwright's Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Install Chromium and its system libraries
+        run: npx playwright install --with-deps chromium
+        working-directory: e2e
+      # Builds and starts the API, the relay and the frontend itself
+      # (e2e/playwright.config.ts), against the service database above.
+      - run: npm run test --workspace=e2e
+      - name: Keep the report and traces when something fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          retention-days: 7

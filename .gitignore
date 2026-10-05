@@ -5,6 +5,8 @@ build/
 coverage/
 .env
 .env.local
+# Local-only settings with secrets, e.g. backend/.env.test.local
+.env*.local
 *.log
 .DS_Store
 generated/
@@ -13,3 +15,6 @@ backend/prisma/generated/
 *.tsbuildinfo
 
 .vscode/
+# Playwright output
+e2e/playwright-report/
+e2e/test-results/

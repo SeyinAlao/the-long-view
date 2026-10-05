@@ -11,7 +11,9 @@ npm workspaces monorepo. Run installs from the repo root.
 
 - `backend/` - NestJS 11, Prisma 7 (PrismaPg adapter), PostgreSQL on Neon
 - `frontend/` - Next.js 16 App Router, React 19, TanStack Query, Zustand, Tailwind v4
-- `docs/decisions/` - ADRs 001-008. Read the relevant one before changing that area.
+- `e2e/` - Playwright browser tests (+ axe-core), run against a real API,
+  frontend and a delay relay; CI job "Browser tests"
+- `docs/decisions/` - ADRs 001-009. Read the relevant one before changing that area.
 - `docs/deployment.md` - runbook: hosts, every env var, setup order, migrations
 - `docs/backlog.md` - agreed deferred work, split before / after launch
 
@@ -20,16 +22,19 @@ npm workspaces monorepo. Run installs from the repo root.
 Backend (`backend/`): `dev`, `lint`, `typecheck`, `test`, `test:e2e`, `build`,
 `db:seed`, `market-data:refresh`, `evaluate:pending`.
 Frontend (`frontend/`): `dev`, `lint`, `typecheck`, `build`.
+Root: `test:browser` (Playwright; builds and starts everything itself).
 
 Before any commit, run lint, typecheck, test and build for every side touched,
-plus test:e2e for backend changes.
+plus test:e2e for backend changes and test:browser for anything a page touches.
 
-**e2e tests wipe their database.** A guard refuses to run unless the database
-name contains `test`. `backend/.env` points at the **production** branch's
-`neondb` (checked 2 October 2026; not staging, which the site uses), so e2e needs
-the Neon test branch for that terminal session only:
-`$env:DATABASE_URL="<test branch pooled URL>"`, run, then
-`Remove-Item Env:\DATABASE_URL`. Never point e2e at staging or production.
+**Tests that wipe their database** (backend e2e, browser tests) refuse to run
+unless the database name contains `test`. Locally they use a native Postgres 18
+(`the_long_view_test` on localhost) via the gitignored `backend/.env.test.local`
+- no internet, about 10 s for backend e2e. One-time setup and how to run:
+docs/deployment.md, "Running the tests locally". CI is the authoritative run.
+`backend/.env` points at the **production** branch's `neondb` (checked
+2 October 2026; not staging, which the site uses): never point tests at it, or
+at staging. The test backend always runs with `DISABLE_SCHEDULED_JOBS=true`.
 
 ## Standards (set by Seyin - non-negotiable)
 
@@ -109,26 +114,49 @@ FRONTEND_URL / CORS_ORIGIN / GOOGLE_CALLBACK_URL and Google's OAuth URIs.
    a restore into an empty database matched its row counts. Remaining:
    - For the first week, compare a few fetched prices with NGX's
      official closing prices to confirm 5:30pm catches the final ones.
-   - Scheduled runs can start hours late on this repo (the first one,
-     2 October, was 4h22m late); the trading-hours guard keeps a very late
+   - Scheduled runs start hours late on this repo (market job 4h22m on
+     2 October; backups 5-6h on 3-4 October, both passing); the trading-hours guard keeps a very late
      run from storing next-day intraday prices. If runs are dropped or
      keep slipping, trigger workflow_dispatch from cron-job.org instead.
-2. **Browser tests PR.** Playwright in the repo and CI: the sign-up -> publish
-   -> counter -> sign-out journey, two accounts on one tab (no leaked drafts),
-   the Google button's loading state, an axe-core WCAG 2.2 AA audit across the
-   main pages including error states, and the cold-start loading states (a
-   relay that delays the API). Add `docs/backlog.md` items as they're done.
+2. **Pre-launch audit**, in the role of a senior security analyst. Before
+   starting, remind Seyin of every shelved update (list below). Then:
+   - SOC 2 readiness review (Trust Services Criteria gap list - not a
+     certification, which needs an auditor).
+   - NDPA 2023 (Nigeria Data Protection Act) privacy review: what personal
+     data is held, lawful basis, privacy notice, retention, deletion, breach
+     handling, cross-border transfer (hosts are in the US).
+   - OWASP-based security audit (ASVS / Top 10) of the code and config.
+   - GitHub's free scanning: CodeQL, Dependabot alerts, secret scanning.
+   - Self pen test - first read Vercel's, Render's and Neon's testing
+     policies and stay inside them.
+   - Security headers (CSP, HSTS, frame-ancestors, referrer, permissions).
+   - Performance audit (Core Web Vitals, bundle size, cold start).
+   - Then fix what it finds, each with a test.
 3. **Go-live (Plan A).** Clean production database (seed, refresh prices),
    reset the Neon `neondb_owner` password, publish the Google consent screen,
    add Vercel Web Analytics, switch the private jobs repo's two secrets to
    production, and decide whether to keep the API awake (Render free hours
    cover about one always-on service).
 
-## Reminders for Seyin (raise only once the steps above are done)
+## Shelved updates (remind Seyin of all of these before the audit starts)
 
-- A full audit scan, a penetration-testing scan, and a review of how fast the
-  app loads, with ways to optimise.
-- A list of updates worth doing after he posts the project and hears feedback.
-- After launch: Google sign-in returning people to where they were (signed
-  OAuth `state` + safeNextPath), the story/teaser sharing feature, one shared
-  style for form fields (copy-pasted across six files).
+- Upgrade `next` past 16.3.5 (critical advisory in `next/og` ImageResponse)
+  and `multer` (via @nestjs/platform-express). Neither path is used today
+  (checked 5 October 2026), but both have fixes.
+- `pg` warnings: sslmode aliasing (prefer/require become verify-full in pg 9)
+  and "client.query() while already executing" in e2e.
+- 7 lint warnings (`any`) in the backend.
+- Google sign-in returning people to where they were (signed OAuth `state`
+  + safeNextPath).
+- The story/teaser sharing feature.
+- One shared style for form fields (copy-pasted across six files).
+- Keep the API awake, or accept the ~46 s cold start.
+- Go-live items: clean production database, Neon password reset, publish the
+  Google consent screen, Vercel Web Analytics, switch the jobs repo's secrets.
+- Scheduled jobs: a week of price checks against NGX closes; cron-job.org
+  fallback if runs keep slipping (first runs were 4-6 h late).
+- Trading-hours guard doesn't know NGX public holidays (harmless: a manual
+  run on a weekday holiday just has to wait until 4:30pm).
+- Back/forward cache: headless Chromium reloads rather than restores pages,
+  so the Google button's reset is tested by firing `pageshow` directly.
+- After launch: a list of updates worth doing once people give feedback.
