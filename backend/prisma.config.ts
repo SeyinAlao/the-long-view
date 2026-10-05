@@ -14,9 +14,19 @@
 import 'dotenv/config';
 import { defineConfig } from 'prisma/config';
 
+// Only for `prisma migrate diff --to-migrations` (checking a database
+// against the migration history, docs/deployment.md). Prisma drops and
+// recreates everything in a shadow database, so this refuses any whose
+// name doesn't say "shadow" - a slip can never point it at a real one.
+const shadowDatabaseUrl = process.env.SHADOW_DATABASE_URL;
+if (shadowDatabaseUrl && !/shadow/i.test(new URL(shadowDatabaseUrl).pathname)) {
+  throw new Error('SHADOW_DATABASE_URL must name a throwaway database with "shadow" in its name.');
+}
+
 export default defineConfig({
   schema: 'prisma/schema.prisma',
   datasource: {
     url: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
+    shadowDatabaseUrl,
   },
 });
