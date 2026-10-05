@@ -8,6 +8,7 @@ import {
   Post,
   Req,
   Res,
+  UseFilters,
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -24,6 +25,12 @@ import { OptionalJwtAuthGuard } from './guards/optional-jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import type { SafeUser } from '../users/users.service';
 import type { GoogleProfile } from './strategies/google.strategy';
+import { LoginFailedException } from './login-failed.exception';
+import { RateLimit } from '../security/rate-limit.decorator';
+import { RateLimiterService } from '../security/rate-limiter.service';
+import { GoogleRateLimitFilter } from '../security/google-rate-limit.filter';
+import { SecurityLog } from '../security/security-log.service';
+import { getEdgeInfo } from '../security/request-edge';
 
 const COOKIE_NAME = 'session_token';
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -35,21 +42,39 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly config: ConfigService,
+    private readonly limiter: RateLimiterService,
+    private readonly securityLog: SecurityLog,
   ) {}
 
   @Post('register')
+  @RateLimit('register')
   async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
     const { user, accessToken } = await this.authService.register(dto);
     this.setSessionCookie(res, accessToken);
     return { user };
   }
 
+  // Limited twice: per IP (the guard, "login") and per account - after
+  // too many failures for one email, from anywhere, it is refused before
+  // the password is even checked (ADR 010).
   @Post('login')
+  @RateLimit('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    const { user, accessToken } = await this.authService.login(dto);
-    this.setSessionCookie(res, accessToken);
-    return { user };
+  async login(@Body() dto: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const { clientIp } = getEdgeInfo(req);
+    this.limiter.assertAccountAllowed(dto.email, clientIp);
+    try {
+      const { user, accessToken } = await this.authService.login(dto);
+      this.limiter.clearAccount(dto.email);
+      this.setSessionCookie(res, accessToken);
+      return { user };
+    } catch (error) {
+      if (error instanceof LoginFailedException) {
+        this.limiter.recordAccountFailure(dto.email);
+        this.securityLog.loginFailed(error.reason, dto.email, clientIp);
+      }
+      throw error;
+    }
   }
 
   // Ends every session this person has, on every device (ADR 002), when
@@ -75,6 +100,8 @@ export class AuthController {
   // Passport's GoogleAuthGuard intercepts this request and redirects the
   // browser to Google before this handler body ever runs.
   @Get('google')
+  @RateLimit('google')
+  @UseFilters(GoogleRateLimitFilter)
   @UseGuards(GoogleAuthGuard)
   googleAuth() {}
 
@@ -83,6 +110,8 @@ export class AuthController {
   // empty if Google sign-in failed or was refused (GoogleCallbackGuard).
   // Every outcome ends in a redirect to a page that explains it.
   @Get('google/callback')
+  @RateLimit('google')
+  @UseFilters(GoogleRateLimitFilter)
   @UseGuards(GoogleCallbackGuard)
   async googleCallback(@Req() req: Request, @Res() res: Response) {
     const frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3000');

@@ -13,6 +13,9 @@ import type { JwtService } from '@nestjs/jwt';
 // oauth-state-store.spec.ts runs the real library to catch any change.
 
 export const OAUTH_STATE_COOKIE = 'oauth_state';
+
+// What a refused state reports to passport (GoogleCallbackGuard logs it).
+export const STATE_REFUSED = 'Invalid authorization request state.';
 const TYP = 'oauth-state';
 const TEN_MINUTES_MS = 10 * 60 * 1000;
 
@@ -48,7 +51,7 @@ export class SignedCookieStateStore {
   // The cookie is cleared by the callback handler on every outcome; this
   // only reads it.
   verify(req: Request, providedState: unknown, callback: (err: Error | null, ok?: boolean, state?: OAuthAppState | { message: string }) => void): void {
-    const refuse = () => callback(null, false, { message: 'Invalid authorization request state.' });
+    const refuse = () => callback(null, false, { message: STATE_REFUSED });
     const token: unknown = req.cookies?.[OAUTH_STATE_COOKIE];
     if (typeof token !== 'string' || typeof providedState !== 'string') return refuse();
 

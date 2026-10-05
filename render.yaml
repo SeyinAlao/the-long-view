@@ -76,3 +76,11 @@ services:
         sync: false
       - key: FRONTEND_URL
         sync: false
+      # The same value as EDGE_PROXY_KEY on Vercel (ADR 010). The API
+      # refuses to start in production without it. Render only asks for
+      # sync: false values when a Blueprint is first created, so on this
+      # existing service it is added by hand (docs/deployment.md, "The
+      # edge key"). EDGE_PROXY_ENFORCE is also set by hand, when the
+      # runbook says to.
+      - key: EDGE_PROXY_KEY
+        sync: false

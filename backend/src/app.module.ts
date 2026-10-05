@@ -12,6 +12,7 @@ import { ThesesModule } from './theses/theses.module';
 import { MarketDataModule } from './market-data/market-data.module';
 import { EvaluationModule } from './evaluation/evaluation.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
+import { SecurityModule } from './security/security.module';
 
 // The daily market-data refresh and evaluation run in-process by
 // default, which is what local development wants. A deployed API sets
@@ -35,6 +36,7 @@ const scheduledJobs = process.env.DISABLE_SCHEDULED_JOBS === 'true' ? [] : [Sche
   imports: [
     configModule,
     ...scheduledJobs,
+    SecurityModule,
     PrismaModule,
     HealthModule,
     UsersModule,
