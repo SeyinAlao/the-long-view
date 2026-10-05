@@ -5,6 +5,8 @@ build/
 coverage/
 .env
 .env.local
+# Local-only settings with secrets, e.g. backend/.env.test.local
+.env*.local
 *.log
 .DS_Store
 generated/
