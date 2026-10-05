@@ -44,19 +44,37 @@ test('an API that drops the connection shows the error page, not a broken one', 
   await expect(errorHeading(page)).toBeVisible();
 });
 
-test('a published thesis shows the error page during an outage, not "not on the record"', async ({
-  page,
-  request,
-}) => {
-  await addPrice('MTNN', 250);
-  expect((await request.post('/api/auth/register', { data: newAccount('outage_author') })).status()).toBe(201);
-  const id = await createThesis(request, { ticker: 'MTNN', label: 'Outage', publish: true });
+const notFoundHeading = (page: Page) => page.getByRole('heading', { name: "This page isn't on the record." });
 
-  await relay(request, 'fail=503');
-  await page.goto(`/theses/${id}`);
+// The thesis route must tell "no such thesis" (the API's own 404) apart
+// from "the API failed": only the first is a not-found page.
+for (const status of [500, 503]) {
+  test(`a published thesis shows the error page when the API answers ${status}, not "not on the record"`, async ({
+    page,
+    request,
+  }) => {
+    await addPrice('MTNN', 250);
+    expect((await request.post('/api/auth/register', { data: newAccount('outage_author') })).status()).toBe(201);
+    const id = await createThesis(request, { ticker: 'MTNN', label: 'Outage', publish: true });
 
-  await expect(errorHeading(page)).toBeVisible();
-  await expect(page.getByText("This page isn't on the record.")).toHaveCount(0);
+    await relay(request, `fail=${status}`);
+    await page.goto(`/theses/${id}`);
+
+    await expect(errorHeading(page)).toBeVisible();
+    await expect(notFoundHeading(page)).toHaveCount(0);
+  });
+}
+
+// The HTTP status is 200, not 404: the route's loading.tsx starts the
+// stream before the thesis is looked up, and a status can't change once
+// streaming has begun. Next.js marks the page noindex instead (its docs:
+// loading.js, "Status codes"), which is what this checks.
+test('a thesis the API genuinely says is missing (404) still shows the not-found page', async ({ page }) => {
+  await page.goto('/theses/no-such-thesis');
+
+  await expect(notFoundHeading(page)).toBeVisible();
+  await expect(errorHeading(page)).toHaveCount(0);
+  await expect(page.locator('meta[name="robots"][content*="noindex"]').first()).toBeAttached();
 });
 
 test('a slow API keeps the skeleton until the timeout, and only then shows the error page', async ({
