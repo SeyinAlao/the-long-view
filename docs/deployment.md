@@ -165,6 +165,20 @@ Don't use a schema-only branch for the clean production database: it starts with
 
 If a schema-only branch is used anyway, baseline it with steps 1-5 above, listing **all** migrations that exist at that point.
 
+## Google account linking through Neon's pooler (staging trial)
+
+Linking a Google sign-in to an existing account runs a **Serializable** transaction (ADR 003). The tests use a direct local database; the live API uses Neon's **pooled** URL. Neon's pooler is PgBouncer in transaction mode, which holds one server connection from `BEGIN` to `COMMIT`; its documented limits are session-level (`SET`/`RESET`, `LISTEN`, SQL `PREPARE`, session advisory locks). Prisma's pg adapter (7.10) starts the transaction with `BEGIN`, then `SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`, which is transaction-scoped. So it should work; this confirms it on staging, harmlessly:
+
+1. **Read-only probe**, with staging's **pooled** URL (host contains `-pooler`):
+   ```
+   $env:POOLED_URL = "<staging pooled connection string>"
+   ([uri]$env:POOLED_URL).Host
+   & $psql $env:POOLED_URL -f prisma\checks\serializable-through-pooler.sql
+   Remove-Item Env:\POOLED_URL
+   ```
+   Expect `serializable`, a user count, and `COMMIT`.
+2. **One real link, after the API deploys:** register a throwaway account with a password, using an email of a Google account you control and no published work; sign out; choose "Continue with Google" with that account. Expect the dashboard notice, and that the password no longer signs in. Render's logs show no `google_sign_in_failed`. Delete nothing: the account is staging test data.
+
 ## Running the tests locally
 
 The backend e2e tests and the browser tests both wipe their database, so they run against a **local** Postgres 18, not over the internet. CI is the authoritative run; this is for checking before you push.
