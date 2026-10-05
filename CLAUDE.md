@@ -83,6 +83,12 @@ at staging. The test backend always runs with `DISABLE_SCHEDULED_JOBS=true`.
   with public activity (`PublicActivityService` - extend it when comments or
   reactions ship); otherwise it removes the password and ends all sessions,
   in one Serializable transaction. Only verified Google emails are accepted.
+- Google sign-in `state` is a signed `oauth_state` cookie (`Path=/`,
+  `SameSite=Lax`, 10 min) via `SignedCookieStateStore`; always pass `state`
+  as an object (a string skips the store). It carries `next`, checked by the
+  API's own `safeNextPath`. passport-oauth2 and passport-google-oauth20 are
+  pinned exactly. `GOOGLE_*_URL` overrides are test-only (127.0.0.1, never
+  in production or render.yaml).
 - Session tokens carry the user's `sessionVersion` (`sv`); signing out raises
   it and ends every session on every device (ADR 002). The cookie stays
   explicitly `SameSite=Lax`: it is what stops a cross-site sign-out.

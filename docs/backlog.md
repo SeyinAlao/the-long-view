@@ -9,7 +9,7 @@ Agreed 5 October 2026 during the pre-launch audit. Each step is its own PR, merg
 1. **Done 5 October:** friendly error pages (PR #30) and a read-only CI token (PR #31) merged; the code-scanning alerts they addressed closed on `master`.
 2. **Auth PR 1: case-insensitive emails and session revocation.** One migration (`citext` email, `sessionVersion`), applied to staging by hand **before** the code merges, because the new code reads the new column. Logout signs out every device; everyone signs in again once after deploy.
 3. **Auth PR 2: Google account linking.** Changes to how a Google sign-in joins an existing account (amends ADR 003). Also clears CodeQL alerts #5 and #6.
-4. **Auth PR 3: Google sign-in `state`, and returning people to where they were.** A signed, short-lived `state` cookie (Path=/, tested through the `/api` rewrite) carrying a `safeNextPath`-checked destination; PKCE only if Google's docs confirm support for confidential web clients.
+4. **Auth PR 3: Google sign-in `state`, and returning people to where they were.** A signed, short-lived `state` cookie (Path=/, tested through the `/api` rewrite) carrying a `safeNextPath`-checked destination; no PKCE (Google's web-server guide doesn't document it for confidential clients); `prompt=select_account`; a browser round trip against a fake Google on 127.0.0.1.
 5. **Rate limiting** (G3): per IP, and per email on sign-in.
 6. **Security headers** (G4): API and frontend.
 7. **Edge caching for the Ledger and Leaderboard** (G5). The build must not depend on the API being awake.

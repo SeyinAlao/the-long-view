@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useRegister, authErrorMessage } from '@/hooks/use-auth';
 import { GoogleButton } from './google-button';
+import { GoogleSignInError } from './google-sign-in-error';
 import { safeNextPath } from '@/lib/safe-next-path';
 
 export function SignupForm() {
@@ -31,8 +32,10 @@ export function SignupForm() {
         Publish a thesis. Lock it. Let the record speak.
       </p>
 
+      <GoogleSignInError />
+
       <div className="mt-8">
-        <GoogleButton />
+        <GoogleButton next={next} />
       </div>
 
       <div className="my-6 flex items-center gap-3">

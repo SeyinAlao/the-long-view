@@ -47,3 +47,8 @@ export const RELAY_URL = `http://127.0.0.1:${RELAY_PORT}`;
 // shortened from production's 90s so the timeout can be tested. Still
 // well above the cold-start test's 12s delay, which must not time out.
 export const API_TIMEOUT_MS = 20_000;
+
+// The fake Google (support/fake-google.mjs). IPv4 literal: the API only
+// accepts Google endpoint overrides on 127.0.0.1.
+export const FAKE_GOOGLE_PORT = 4200;
+export const FAKE_GOOGLE_URL = `http://127.0.0.1:${FAKE_GOOGLE_PORT}`;

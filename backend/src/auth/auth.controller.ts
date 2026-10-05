@@ -18,6 +18,8 @@ import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { GoogleCallbackGuard } from './guards/google-callback.guard';
+import { OAUTH_STATE_COOKIE, stateCookieOptions, type OAuthAppState } from './oauth-state-store';
+import { safeNextPath } from './safe-next-path';
 import { OptionalJwtAuthGuard } from './guards/optional-jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import type { SafeUser } from '../users/users.service';
@@ -84,6 +86,8 @@ export class AuthController {
   @UseGuards(GoogleCallbackGuard)
   async googleCallback(@Req() req: Request, @Res() res: Response) {
     const frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3000');
+    // One sign-in, one state: gone whatever happens next.
+    res.clearCookie(OAUTH_STATE_COOKIE, stateCookieOptions(this.isProduction()));
     const profile = req.user as GoogleProfile | undefined;
     if (!profile) return res.redirect(`${frontendUrl}/login?error=google`);
 
@@ -92,8 +96,11 @@ export class AuthController {
       if (result.outcome === 'refused') return res.redirect(`${frontendUrl}/login?error=google-link-refused`);
 
       this.setSessionCookie(res, result.accessToken);
-      const notice = result.passwordCleared ? '?notice=google-now-sign-in' : '';
-      return res.redirect(`${frontendUrl}/dashboard${notice}`);
+      // The notice that Google replaced their password wins over going
+      // back to where they were, so it is always seen.
+      if (result.passwordCleared) return res.redirect(`${frontendUrl}/dashboard?notice=google-now-sign-in`);
+      const next = safeNextPath((req.authInfo as { state?: OAuthAppState } | undefined)?.state?.next);
+      return res.redirect(`${frontendUrl}${next ?? '/dashboard'}`);
     } catch (error) {
       // Includes a write conflict while linking (Prisma P2034): the
       // transaction rolled back, so nothing changed and no session was
@@ -114,7 +121,11 @@ export class AuthController {
     return {
       httpOnly: true,
       sameSite: 'lax' as const,
-      secure: this.config.get<string>('NODE_ENV') === 'production',
+      secure: this.isProduction(),
     };
+  }
+
+  private isProduction() {
+    return this.config.get<string>('NODE_ENV') === 'production';
   }
 }

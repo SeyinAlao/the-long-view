@@ -3,7 +3,7 @@ import request from 'supertest';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { PublicActivityService } from '../src/users/public-activity.service';
 import { createTestApp } from './create-test-app';
-import { stubGoogle } from './google-stub';
+import { signInWithGoogle, stubGoogle } from './google-stub';
 
 // Google sign-in onto an existing account with the same email (ADR 003).
 // Someone may have registered that email with a password before its real
@@ -16,7 +16,12 @@ describe('Google account linking (e2e)', () => {
   const PASSWORD = 'squatter-password-1';
 
   const http = () => request(app.getHttpServer());
-  const callback = () => http().get('/auth/google/callback?code=stub-code');
+  // The callback always clears the oauth_state cookie; what matters is
+  // whether a session cookie was issued.
+  const sessionCookieIn = (res: { headers: Record<string, unknown> }) =>
+    ((res.headers['set-cookie'] as string[] | undefined) ?? []).find((c) => c.startsWith('session_token='));
+  // A full Google sign-in: start (state cookie) and callback.
+  const callback = () => signInWithGoogle(app);
   const passwordLogin = () => http().post('/auth/login').send({ email: EMAIL, password: PASSWORD });
   const registerWithPassword = async () => {
     const res = await http()
@@ -68,7 +73,7 @@ describe('Google account linking (e2e)', () => {
     const draft = await addThesis((await account()).id, 'DRAFT');
     stubGoogle(app, { id: 'g-owner', email: 'Owner@Example.com', verified: true });
 
-    const res = await callback().expect(302);
+    const res = await callback();
 
     expect(res.headers.location).toMatch(/\/dashboard\?notice=google-now-sign-in$/);
     await http().get('/auth/me').set('Cookie', res.headers['set-cookie']).expect(200);
@@ -84,10 +89,10 @@ describe('Google account linking (e2e)', () => {
     const before = await account();
     stubGoogle(app, { id: 'g-owner', email: EMAIL, verified: true });
 
-    const res = await callback().expect(302);
+    const res = await callback();
 
     expect(res.headers.location).toMatch(/\/login\?error=google-link-refused$/);
-    expect(res.headers['set-cookie']).toBeUndefined();
+    expect(sessionCookieIn(res)).toBeUndefined();
     expect(await account()).toEqual(before);
     await passwordLogin().expect(200);
     await http().get('/auth/me').set('Cookie', earlyCookie).expect(200);
@@ -105,7 +110,7 @@ describe('Google account linking (e2e)', () => {
     });
     stubGoogle(app, { id: 'g-owner', email: EMAIL, verified: true });
 
-    const res = await callback().expect(302);
+    const res = await callback();
 
     expect(res.headers.location).toMatch(/\/login\?error=google-link-refused$/);
     expect(await account()).toEqual(before);
@@ -117,7 +122,7 @@ describe('Google account linking (e2e)', () => {
     await prisma.user.create({ data: { email: EMAIL, username: 'googler', name: 'G', googleId: 'g-first' } });
     stubGoogle(app, { id: 'g-second', email: EMAIL, verified: true });
 
-    const res = await callback().expect(302);
+    const res = await callback();
 
     expect(res.headers.location).toMatch(/\/login\?error=google-link-refused$/);
     expect((await account()).googleId).toBe('g-first');
@@ -130,10 +135,10 @@ describe('Google account linking (e2e)', () => {
   ])('refuses a Google email that Google %s, creating and linking nothing', async (_label, verified) => {
     stubGoogle(app, { id: 'g-new', email: EMAIL, verified });
 
-    const res = await callback().expect(302);
+    const res = await callback();
 
     expect(res.headers.location).toMatch(/\/login\?error=google$/);
-    expect(res.headers['set-cookie']).toBeUndefined();
+    expect(sessionCookieIn(res)).toBeUndefined();
     expect(await prisma.user.count()).toBe(0);
   });
 
@@ -159,10 +164,10 @@ describe('Google account linking (e2e)', () => {
     });
     stubGoogle(app, { id: 'g-owner', email: EMAIL, verified: true });
 
-    const res = await callback().expect(302);
+    const res = await callback();
 
     expect(res.headers.location).toMatch(/\/login\?error=google$/);
-    expect(res.headers['set-cookie']).toBeUndefined();
+    expect(sessionCookieIn(res)).toBeUndefined();
     expect(await account()).toEqual(before);
     expect(logLines).toContain('google_sign_in_failed error=PrismaClientKnownRequestError code=P2034');
   });
@@ -172,7 +177,7 @@ describe('Google account linking (e2e)', () => {
   it('accepts email_verified sent as the string "true"', async () => {
     stubGoogle(app, { id: 'g-new', email: EMAIL, verified: 'true' });
 
-    const res = await callback().expect(302);
+    const res = await callback();
 
     expect(res.headers.location).toMatch(/\/dashboard$/);
     expect((await account()).googleId).toBe('g-new');
@@ -181,7 +186,7 @@ describe('Google account linking (e2e)', () => {
   it('refuses email_verified sent as the string "false"', async () => {
     stubGoogle(app, { id: 'g-new', email: EMAIL, verified: 'false' });
 
-    const res = await callback().expect(302);
+    const res = await callback();
 
     expect(res.headers.location).toMatch(/\/login\?error=google$/);
     expect(await prisma.user.count()).toBe(0);
@@ -190,11 +195,11 @@ describe('Google account linking (e2e)', () => {
   it('still signs in a returning Google user, and creates a new one with a lowercased email', async () => {
     stubGoogle(app, { id: 'g-new', email: 'New.Person@Example.com', verified: true });
 
-    const first = await callback().expect(302);
+    const first = await callback();
     expect(first.headers.location).toMatch(/\/dashboard$/);
     expect((await prisma.user.findFirstOrThrow({ where: { googleId: 'g-new' } })).email).toBe('new.person@example.com');
 
-    const again = await callback().expect(302);
+    const again = await callback();
     expect(again.headers.location).toMatch(/\/dashboard$/);
     expect(await prisma.user.count()).toBe(1);
   });

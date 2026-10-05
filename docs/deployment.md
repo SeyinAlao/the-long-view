@@ -24,6 +24,7 @@ Set in the Render dashboard. `render.yaml` sets the non-secret ones.
 | `CORS_ORIGIN` | Same as `FRONTEND_URL` |
 | `GOOGLE_CALLBACK_URL` | `https://<project>.vercel.app/api/auth/google/callback` - on the **frontend's** domain |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | From the Google Cloud OAuth client |
+| `GOOGLE_AUTHORIZATION_URL`, `GOOGLE_TOKEN_URL`, `GOOGLE_USERINFO_URL` | **Never set these here.** Test-only: the browser tests point Google sign-in at a fake Google on 127.0.0.1. The API refuses to start if any is set in production or points anywhere but 127.0.0.1, and a unit test fails if `render.yaml` mentions them. |
 
 Changing `JWT_SECRET` signs everyone out. It never deletes data.
 

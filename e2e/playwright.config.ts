@@ -1,10 +1,19 @@
 import { defineConfig, devices } from '@playwright/test';
-import { API_TIMEOUT_MS, BACKEND_PORT, DATABASE_URL, FRONTEND_PORT, RELAY_PORT, RELAY_URL } from './support/env';
+import {
+  API_TIMEOUT_MS,
+  BACKEND_PORT,
+  DATABASE_URL,
+  FAKE_GOOGLE_PORT,
+  FAKE_GOOGLE_URL,
+  FRONTEND_PORT,
+  RELAY_PORT,
+  RELAY_URL,
+} from './support/env';
 
 // Three servers, as in production but local: the API, a relay in front
 // of it (support/relay.mjs - it can add a delay to imitate Render's
 // cold start), and the frontend built to call the API through that
-// relay. BACKEND_URL is fixed into the frontend at build time, which is
+// relay. A fourth stands in for Google (support/fake-google.mjs). BACKEND_URL is fixed into the frontend at build time, which is
 // why the relay is always in the path rather than swapped in later.
 //
 // One worker: the tests share one database and one relay, and the
@@ -25,11 +34,17 @@ const backendEnv = {
   JWT_SECRET: 'e2e-test-secret',
   FRONTEND_URL: `http://localhost:${FRONTEND_PORT}`,
   CORS_ORIGIN: `http://localhost:${FRONTEND_PORT}`,
-  // Placeholders: the Google strategy needs them to boot, and the tests
-  // never let a request reach Google.
+  // Placeholders: the Google strategy needs them to boot, and no request
+  // ever reaches the real Google - sign-in goes to the fake one below.
   GOOGLE_CLIENT_ID: 'e2e-google-client-id',
   GOOGLE_CLIENT_SECRET: 'e2e-google-client-secret',
   GOOGLE_CALLBACK_URL: `http://localhost:${FRONTEND_PORT}/api/auth/google/callback`,
+  // Google sign-in goes to the fake Google (support/fake-google.mjs).
+  // Test-only: the API refuses these unless they point at 127.0.0.1, and
+  // render.yaml never sets them.
+  GOOGLE_AUTHORIZATION_URL: `${FAKE_GOOGLE_URL}/o/oauth2/v2/auth`,
+  GOOGLE_TOKEN_URL: `${FAKE_GOOGLE_URL}/token`,
+  GOOGLE_USERINFO_URL: `${FAKE_GOOGLE_URL}/userinfo`,
   PUPPETEER_SKIP_DOWNLOAD: 'true',
 };
 
@@ -63,6 +78,13 @@ export default defineConfig({
       command: 'node support/relay.mjs',
       url: `${RELAY_URL}/__relay`,
       env: { RELAY_PORT: String(RELAY_PORT), BACKEND_PORT: String(BACKEND_PORT) },
+      reuseExistingServer: false,
+    },
+    {
+      name: 'Fake Google',
+      command: 'node support/fake-google.mjs',
+      url: `${FAKE_GOOGLE_URL}/__fake-google`,
+      env: { FAKE_GOOGLE_PORT: String(FAKE_GOOGLE_PORT) },
       reuseExistingServer: false,
     },
     {

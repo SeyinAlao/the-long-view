@@ -47,7 +47,9 @@ export function fetchCurrentUser() {
 // Same-origin, like every other API call from the browser. Google then
 // sends the person back to GOOGLE_CALLBACK_URL, which must also be on
 // this app's domain (/api/auth/google/callback) - that response is the
-// one that sets the session cookie.
-export function googleSignInUrl(): string {
-  return '/api/auth/google';
+// one that sets the session cookie. `next` (already checked by
+// safeNextPath on the page) is where to come back to; the API checks it
+// again before using it.
+export function googleSignInUrl(next?: string | null): string {
+  return next ? `/api/auth/google?next=${encodeURIComponent(next)}` : '/api/auth/google';
 }
