@@ -52,3 +52,13 @@ on the frontend's domain; logout clears it; public pages still render.
 ## Status
 
 Accepted.
+
+## Note, October 2026: cookies set through the rewrite use Path=/
+
+The API sees `/auth/...`, but the browser sees `/api/auth/...`. A cookie
+the API sets without an explicit path would be scoped to what the
+browser saw and could miss sibling routes. The Google sign-in state
+cookie is set by `/api/auth/google` and must reach
+`/api/auth/google/callback`, so it is set with `Path=/` (a browser test
+checks the header through the rewrite). The session cookie's path is
+already `/` (Express's default).
