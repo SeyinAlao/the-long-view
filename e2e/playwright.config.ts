@@ -71,6 +71,10 @@ export default defineConfig({
       command: `${build}npm run start -- --port ${FRONTEND_PORT}`,
       url: `http://localhost:${FRONTEND_PORT}`,
       env: { BACKEND_URL: RELAY_URL, NEXT_TELEMETRY_DISABLED: '1' },
+      // Shown, not discarded: the log proves which Next.js version was
+      // built and that it ran as a production build (next build + next
+      // start, as on Vercel) - and explains a failed build in CI.
+      stdout: 'pipe',
       timeout: 240_000,
       reuseExistingServer: false,
     },
