@@ -11,7 +11,7 @@ import { googleSignInUrl } from '@/lib/auth';
 // backend may be asleep and take up to a minute to answer; without
 // this, the button would look dead for that whole time, and people
 // click again or leave.
-export function GoogleButton() {
+export function GoogleButton({ next }: { next?: string | null }) {
   const [connecting, setConnecting] = useState(false);
 
   // If someone clicks, then comes back with the browser's Back button,
@@ -25,7 +25,7 @@ export function GoogleButton() {
 
   return (
     <a
-      href={googleSignInUrl()}
+      href={googleSignInUrl(next)}
       onClick={(e) => {
         if (connecting) {
           e.preventDefault(); // one navigation is enough

@@ -37,7 +37,7 @@ export function LoginForm() {
       <GoogleSignInError />
 
       <div className="mt-8">
-        <GoogleButton />
+        <GoogleButton next={next} />
       </div>
 
       <div className="my-6 flex items-center gap-3">
