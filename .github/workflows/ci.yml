@@ -7,6 +7,11 @@ on:
     branches: [master]
   workflow_dispatch:
 
+# Least privilege: every job only reads the repo (checkout, cache,
+# artifact upload). No job writes to it, comments or uses a secret.
+permissions:
+  contents: read
+
 jobs:
   frontend:
     name: Frontend (lint, typecheck, build)
