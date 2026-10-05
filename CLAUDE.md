@@ -140,9 +140,12 @@ FRONTEND_URL / CORS_ORIGIN / GOOGLE_CALLBACK_URL and Google's OAuth URIs.
 
 ## Shelved updates (remind Seyin of all of these before the audit starts)
 
-- Upgrade `next` past 16.3.5 (critical advisory in `next/og` ImageResponse)
-  and `multer` (via @nestjs/platform-express). Neither path is used today
-  (checked 5 October 2026), but both have fixes.
+- `npm audit`: 38 left after the next/multer upgrade (0 critical, 37 high,
+  1 moderate), all in dev or build tooling - jest's braces/micromatch chain,
+  eslint-config-next (same chain), brace-expansion, deepmerge-ts (Prisma
+  config), mysql2 (Prisma CLI), fast-uri. npm's suggested fixes are major
+  changes (jest 30) or downgrades (Prisma 6, eslint-config-next 14); weigh
+  each in the audit.
 - `pg` warnings: sslmode aliasing (prefer/require become verify-full in pg 9)
   and "client.query() while already executing" in e2e.
 - 7 lint warnings (`any`) in the backend.
