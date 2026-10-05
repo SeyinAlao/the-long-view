@@ -126,42 +126,54 @@ FRONTEND_URL / CORS_ORIGIN / GOOGLE_CALLBACK_URL and Google's OAuth URIs.
      2 October; backups 5-6h on 3-4 October, both passing); the trading-hours guard keeps a very late
      run from storing next-day intraday prices. If runs are dropped or
      keep slipping, trigger workflow_dispatch from cron-job.org instead.
-2. **Pre-launch audit**, in the role of a senior security analyst. Before
-   starting, remind Seyin of every shelved update (list below). Then:
-   - SOC 2 readiness review (Trust Services Criteria gap list - not a
-     certification, which needs an auditor).
-   - NDPA 2023 (Nigeria Data Protection Act) privacy review: what personal
-     data is held, lawful basis, privacy notice, retention, deletion, breach
-     handling, cross-border transfer (hosts are in the US).
-   - OWASP-based security audit (ASVS / Top 10) of the code and config.
-   - GitHub's free scanning: CodeQL, Dependabot alerts, secret scanning.
-   - Self pen test - first read Vercel's, Render's and Neon's testing
-     policies and stay inside them.
-   - Security headers (CSP, HSTS, frame-ancestors, referrer, permissions).
-   - Performance audit (Core Web Vitals, bundle size, cold start).
-   - Then fix what it finds, each with a test.
+2. **Pre-launch audit and launch gate** - started 5 October 2026, as a
+   senior security analyst, timeboxed to a week as a target. The report is
+   kept **outside this repo** until its findings are fixed: never put open
+   findings in commits, PRs or docs here. Done: GitHub scanning on (CodeQL,
+   Dependabot alerts, secret scanning), `master` ruleset (PR + all three CI
+   jobs), error pages (PR #30), read-only CI token (PR #31). Order from
+   here (details in docs/backlog.md):
+   1. Auth PR 1: case-insensitive email (`citext`) + session revocation
+      (`sessionVersion`); one migration, applied to staging by hand
+      **before** the code merges.
+   2. Auth PR 2: Google account linking (amends ADR 003); clears CodeQL
+      #5 and #6.
+   3. Auth PR 3: OAuth `state` cookie + return to where you were.
+   4. G3 rate limiting, G4 security headers, G5 edge caching for Ledger
+      and Leaderboard, G2 uptime monitor on `/health/live`, G6 a rehearsed
+      rollback on Vercel and Render - in that order.
+   5. Remaining audit items: staging ramp (policies cited, abort
+      conditions, tell Seyin before it starts), NDPA gap list, one-page
+      SOC 2 checklist, performance audit.
+   All High findings are fixed before stage 1 of the rollout.
 3. **Go-live (Plan A).** Clean production database (seed, refresh prices),
-   reset the Neon `neondb_owner` password, publish the Google consent screen,
-   add Vercel Web Analytics, switch the private jobs repo's two secrets to
-   production, and decide whether to keep the API awake (Render free hours
-   cover about one always-on service).
+   reset the Neon `neondb_owner` password and add least-privilege database
+   roles, publish the Google consent screen, add Vercel Web Analytics, and
+   switch the private jobs repo's two secrets to production. The uptime
+   monitor (G2) keeps the API awake by design.
+4. **Three-stage rollout:** Seyin and two friends, then a small group,
+   then public; 7 days each for the first two, moving on only when the
+   agreed exit criteria are met.
 
 ## Shelved updates (remind Seyin of all of these before the audit starts)
 
 - `npm audit`: 38 left after the next/multer upgrade (0 critical, 37 high,
-  1 moderate), all in dev or build tooling - jest's braces/micromatch chain,
-  eslint-config-next (same chain), brace-expansion, deepmerge-ts (Prisma
-  config), mysql2 (Prisma CLI), fast-uri. npm's suggested fixes are major
-  changes (jest 30) or downgrades (Prisma 6, eslint-config-next 14); weigh
-  each in the audit.
+  1 moderate) - jest's braces/micromatch chain, eslint-config-next (same
+  chain), brace-expansion, deepmerge-ts (Prisma config), mysql2 (Prisma
+  CLI), fast-uri. 5 are in the production tree (the Prisma CLI comes in
+  under `@prisma/client`; fast-uri via @hookform/resolvers), none reachable
+  at runtime. npm's suggested fixes are major changes (jest 30) or
+  downgrades (Prisma 6, eslint-config-next 14). Each was weighed in the
+  audit (5 October 2026).
 - `pg` warnings: sslmode aliasing (prefer/require become verify-full in pg 9)
   and "client.query() while already executing" in e2e.
 - 7 lint warnings (`any`) in the backend.
 - Google sign-in returning people to where they were (signed OAuth `state`
-  + safeNextPath).
+  + safeNextPath) - now scheduled as auth PR 3.
 - The story/teaser sharing feature.
 - One shared style for form fields (copy-pasted across six files).
-- Keep the API awake, or accept the ~46 s cold start.
+- Keep the API awake, or accept the ~46 s cold start - decided: the uptime
+  monitor (G2) keeps it awake.
 - Go-live items: clean production database, Neon password reset, publish the
   Google consent screen, Vercel Web Analytics, switch the jobs repo's secrets.
 - Scheduled jobs: a week of price checks against NGX closes; cron-job.org
