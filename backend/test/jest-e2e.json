@@ -12,5 +12,8 @@
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
-  "globalSetup": "<rootDir>/guard-test-database.js"
+  "globalSetup": "<rootDir>/guard-test-database.js",
+  "setupFiles": [
+    "<rootDir>/test-env.js"
+  ]
 }
