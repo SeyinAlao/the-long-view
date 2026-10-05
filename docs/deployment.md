@@ -169,14 +169,20 @@ If a schema-only branch is used anyway, baseline it with steps 1-5 above, listin
 
 Linking a Google sign-in to an existing account runs a **Serializable** transaction (ADR 003). The tests use a direct local database; the live API uses Neon's **pooled** URL. Neon's pooler is PgBouncer in transaction mode, which holds one server connection from `BEGIN` to `COMMIT`; its documented limits are session-level (`SET`/`RESET`, `LISTEN`, SQL `PREPARE`, session advisory locks). Prisma's pg adapter (7.10) starts the transaction with `BEGIN`, then `SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`, which is transaction-scoped. So it should work; this confirms it on staging, harmlessly:
 
-1. **Read-only probe**, with staging's **pooled** URL (host contains `-pooler`):
+1. **Read-only check, through Prisma** (the same client and adapter the API uses), with staging's **pooled** URL. From `backend/`:
    ```
    $env:POOLED_URL = "<staging pooled connection string>"
-   ([uri]$env:POOLED_URL).Host
-   & $psql $env:POOLED_URL -f prisma\checks\serializable-through-pooler.sql
+   npm run db:check-pooler
    Remove-Item Env:\POOLED_URL
    ```
-   Expect `serializable`, a user count, and `COMMIT`.
+   It opens one Serializable transaction, makes it read-only, reads one user's id (it prints only whether a row came back) and ends it; it writes nothing. It doesn't load `backend/.env`, refuses a host without `-pooler`, and never prints the connection string. Expect:
+   ```
+   Host: ep-...-pooler.us-east-2.aws.neon.tech  Database: /neondb
+   Isolation: serializable  Read-only: on
+   Read one row: yes
+   OK: a Serializable transaction works through this connection.
+   ```
+   Check the host is staging's (`ep-bold-sky-a5oday2y-pooler...`). Anything starting `FAILED:` means it doesn't work through the pooler: don't rely on linking until that's understood.
 2. **One real link, after the API deploys:** register a throwaway account with a password, using an email of a Google account you control and no published work; sign out; choose "Continue with Google" with that account. Expect the dashboard notice, and that the password no longer signs in. Render's logs show no `google_sign_in_failed`. Delete nothing: the account is staging test data.
 
 ## Running the tests locally
