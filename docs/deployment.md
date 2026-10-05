@@ -80,23 +80,63 @@ Two things to know before any migration (both checked on 5 October 2026 with Pri
 
 **Apply this before the code that needs it merges**: the new code reads `sessionVersion`, so it fails against a database without it. Old code keeps working on the migrated database with one exception: the migration lowercases stored emails, and old code looks emails up exactly, so someone whose stored email had capitals can't sign in until the new code deploys, minutes later. Fine on staging; production starts clean.
 
-From `backend/`, in PowerShell:
+If the target's migration ledger is empty (staging's is: see "Baselining" below), baseline it first; the steps below include that. From `backend/`, in PowerShell, with this change checked out (before merge: `git switch fix/auth-email-sessions`):
 
-1. In the Neon console, create a branch from the target (for example `staging-before-auth-1` from `staging`). It is free and instant, and is the way back.
-2. Load the target's **direct** URL into this window only:
+1. **Host check.** Load the target's **direct** URL into this window only, and check where it points before anything else:
    ```
    $env:DIRECT_URL = "<the target's direct connection string>"
    $psql = "C:\Program Files\PostgreSQL\18\bin\psql.exe"
+   $u = [uri]$env:DIRECT_URL; "$($u.Host)  $($u.AbsolutePath)"
    ```
-3. Check that no two accounts' emails differ only by letter case. Read-only; it must print `(0 rows)`:
+   For staging it must print a host starting `ep-bold-sky-a5oday2y.`, with no `-pooler`, and `/neondb`. Anything else: stop.
+2. **Read-only status:** `npx prisma migrate status`. If it lists only `20261005120000_...` as not yet applied, skip to step 6. If it lists all five, the ledger is empty: continue.
+3. **Baselining, read-only check:** confirm the target's schema is exactly what the first four migrations produce. `migrate diff` only reads the target; it replays the migrations into a throwaway **local** shadow database, which Prisma wipes (prisma.config.ts refuses one without "shadow" in its name):
+   ```
+   & $psql "postgresql://postgres:<local password>@localhost:5432/postgres" -c "CREATE DATABASE the_long_view_shadow"
+   $env:SHADOW_DATABASE_URL = "postgresql://postgres:<local password>@localhost:5432/the_long_view_shadow"
+   $four = Join-Path $env:TEMP "tlv-first-four"
+   Remove-Item $four -Recurse -Force -ErrorAction SilentlyContinue
+   Copy-Item prisma\migrations $four -Recurse
+   Remove-Item (Join-Path $four "20261005120000_case_insensitive_email_session_version") -Recurse
+   npx prisma migrate diff --from-config-datasource --to-migrations $four --exit-code
+   "exit code: $LASTEXITCODE"
+   Remove-Item Env:\SHADOW_DATABASE_URL
+   ```
+   It must print `No difference detected.` and `exit code: 0`. Exit code 2 means the schema differs: stop, and keep the printed summary (it lists tables and indexes, no data).
+4. **Snapshot:** in the Neon console, create a branch from the target (for example `staging-before-auth-1` from `staging`). Free and instant; it is the way back. Every step from here writes.
+5. **Baselining, record the four as applied.** This only writes rows to `_prisma_migrations`; it runs no SQL from them:
+   ```
+   foreach ($m in "20260911014512_init", "20260918103000_add_google_oauth", "20260925160000_nullable_reference_price", "20260927160000_counter_thesis_unique") { npx prisma migrate resolve --applied $m }
+   npx prisma migrate status
+   ```
+   Status must now list only `20261005120000_case_insensitive_email_session_version` as not yet applied.
+6. **Duplicate-email check.** Read-only; it must print `(0 rows)`:
    ```
    & $psql $env:DIRECT_URL -c 'SELECT lower(email) AS email, count(*) FROM "User" GROUP BY lower(email) HAVING count(*) > 1;'
    ```
    If it prints rows, stop: decide which account to keep first. The migration refuses to run in that case anyway, and changes nothing.
-4. Apply: `npx prisma migrate deploy`
-5. Verify: `& $psql $env:DIRECT_URL -c '\d "User"'` shows `email | citext` and `sessionVersion | integer | not null default 0`, and `npx prisma migrate status` says the database is up to date.
-6. If step 4 failed: nothing was applied. Run `npx prisma migrate resolve --rolled-back 20261005120000_case_insensitive_email_session_version`, fix the cause, and go back to step 3.
-7. `Remove-Item Env:\DIRECT_URL`. Then merge the code. When the API redeploys, every existing session ends (tokens issued before this carry no session version), so everyone signs in once.
+7. **Apply:** `npx prisma migrate deploy` (applies only the one migration).
+8. **Verify:** `npx prisma migrate status` says the database is up to date, and `& $psql $env:DIRECT_URL -c '\d "User"'` shows `email | citext` and `sessionVersion | integer | not null default 0`.
+9. If step 7 failed: nothing was applied. Run `npx prisma migrate resolve --rolled-back 20261005120000_case_insensitive_email_session_version`, fix the cause, and go back to step 6.
+10. `Remove-Item Env:\DIRECT_URL`. Then merge the code. When the API redeploys, every existing session ends (tokens issued before this carry no session version), so everyone signs in once.
+
+This whole sequence was rehearsed on 5 October 2026 against a local copy built the way staging is (the first four migrations' tables, some rows, an empty `_prisma_migrations`): status listed all five, the diff found no difference (and exit code 2 when an index was dropped to test it), the four were recorded, only the new migration ran, and the ledger ended with five finished rows.
+
+### Baselining: tables exist but the migration ledger is empty
+
+`prisma migrate status` listing **every** migration as not yet applied, on a database whose tables exist, means `_prisma_migrations` is empty. A Neon **schema-only branch** does this: it copies every table's structure and no rows, the ledger included (Neon docs: "Schema-only branches"). That is how `staging` was created. Never run `migrate deploy` on such a database before baselining: it would try to create tables that already exist.
+
+Baselining tells Prisma which migrations the schema already reflects: a read-only `migrate diff` against the migrations it should match (step 3 above), then `migrate resolve --applied <name>` once per migration (step 5). See Prisma's "Baselining a database" guide.
+
+### Creating a clean database (go-live)
+
+Don't use a schema-only branch for the clean production database: it starts with the same empty ledger. Instead:
+
+1. In the Neon console, create a new, **empty** database, and take its direct and pooled URLs. (A normal Neon branch copies its parent's data; a schema-only one copies an empty ledger. Neither is what this needs.)
+2. Host check as in step 1 above, then `npx prisma migrate deploy`. On an empty database this runs every migration in order and fills the ledger, so later migrations apply normally.
+3. `npx prisma migrate status` says up to date. Then, with `$env:DATABASE_URL` set to the new database's **pooled** URL (both scripts read it, and `backend/.env` would otherwise supply the old one): `npm run db:seed`, and `npm run market-data:refresh` (it refuses on weekdays from 9:00am to 4:30pm Lagos time).
+
+If a schema-only branch is used anyway, baseline it with steps 1-5 above, listing **all** migrations that exist at that point.
 
 ## Running the tests locally
 
@@ -119,7 +159,7 @@ The backend e2e tests and the browser tests both wipe their database, so they ru
 
 ## Setting up an environment, in order
 
-1. **Neon:** create the branch (schema only), then seed the companies: `$env:DATABASE_URL="<pooled URL>"; npx ts-node prisma/seed.ts`.
+1. **Neon:** create a new, **empty** database for the environment (not a schema-only branch: that copies an empty migration ledger; see "Baselining"). Build it with `npx prisma migrate deploy` (host check first), then seed the companies: `$env:DATABASE_URL="<pooled URL>"; npx ts-node prisma/seed.ts`.
 2. **Render:** New, then Blueprint, then this repo. Fill in the variables above. `FRONTEND_URL`, `CORS_ORIGIN` and `GOOGLE_CALLBACK_URL` can be placeholders until the frontend exists.
 3. **Vercel:** import the repo, root directory `frontend`, set `BACKEND_URL` before the first deploy.
 4. **Render:** replace the placeholders with the real frontend URL. Render redeploys.
