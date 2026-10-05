@@ -126,6 +126,14 @@ describe('Rate limits, with the edge key enforced (e2e)', () => {
       await login(edge('198.51.101.200'), 'bea@example.com').expect(401);
     });
 
+    it('counts one email in any letter case as one account', async () => {
+      const spellings = ['eve@example.com', 'EVE@example.com', 'Eve@Example.COM', '  eve@EXAMPLE.com '];
+      for (let i = 0; i < ACCOUNT_FAILURES.limit; i++) {
+        await login(edge(`198.51.106.${i}`), spellings[i % spellings.length]).expect(401);
+      }
+      for (const email of spellings) await login(edge('198.51.106.200'), email).expect(429);
+    });
+
     it('a successful sign-in clears the failures', async () => {
       await request(app.getHttpServer())
         .post('/auth/register')
