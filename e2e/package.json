@@ -1,0 +1,17 @@
+{
+  "name": "@the-long-view/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.63.0",
+    "@types/node": "^22.20.2",
+    "@types/pg": "^8.23.1",
+    "pg": "^8.23.0",
+    "typescript": "^5.9.3"
+  }
+}
