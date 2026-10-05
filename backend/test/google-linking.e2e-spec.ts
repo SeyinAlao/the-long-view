@@ -167,6 +167,26 @@ describe('Google account linking (e2e)', () => {
     expect(logLines).toContain('google_sign_in_failed error=PrismaClientKnownRequestError code=P2034');
   });
 
+  // Google's docs show email_verified as the string "true"; it must work
+  // end to end, through the real callback, not only in the unit test.
+  it('accepts email_verified sent as the string "true"', async () => {
+    stubGoogle(app, { id: 'g-new', email: EMAIL, verified: 'true' });
+
+    const res = await callback().expect(302);
+
+    expect(res.headers.location).toMatch(/\/dashboard$/);
+    expect((await account()).googleId).toBe('g-new');
+  });
+
+  it('refuses email_verified sent as the string "false"', async () => {
+    stubGoogle(app, { id: 'g-new', email: EMAIL, verified: 'false' });
+
+    const res = await callback().expect(302);
+
+    expect(res.headers.location).toMatch(/\/login\?error=google$/);
+    expect(await prisma.user.count()).toBe(0);
+  });
+
   it('still signs in a returning Google user, and creates a new one with a lowercased email', async () => {
     stubGoogle(app, { id: 'g-new', email: 'New.Person@Example.com', verified: true });
 
