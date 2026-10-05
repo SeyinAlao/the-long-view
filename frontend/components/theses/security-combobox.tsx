@@ -96,6 +96,11 @@ export function SecurityCombobox({ value, onChange, error }: SecurityComboboxPro
           <motion.ul
             id="security-listbox"
             role="listbox"
+            // Not a Tab stop: in the combobox pattern focus stays in the
+            // search box and arrow keys move through the options
+            // (aria-activedescendant). Without this, Chrome makes the
+            // scrollable list focusable, with no visible focus outline.
+            tabIndex={-1}
             initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -4, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -4, scale: 0.98 }}
