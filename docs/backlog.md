@@ -8,8 +8,8 @@ Agreed 5 October 2026 during the pre-launch audit. Each step is its own PR, merg
 
 1. **Done 5 October:** friendly error pages (PR #30) and a read-only CI token (PR #31) merged; the code-scanning alerts they addressed closed on `master`. The three auth PRs merged: case-insensitive emails and session revocation (#33), Google account linking (#34, #35), Google sign-in `state` and the return path (#37).
 2. **Done 6 October: rate limiting** (G3) and security logging (audit item F-08), PR #38, ADR 010. Merged 5 October; `EDGE_PROXY_ENFORCE=true` on Render since 6 October, verified on staging (direct calls get 403, `/health` 200, `auth_login_failed` logged with a real `ipRef`). Direct API calls now need the edge key, so they go through the Vercel domain; only `/health` and `/health/live` answer directly. **12 October:** check Vercel's proxy usage, one week after the merge (docs/deployment.md, "The edge key"). Later, optionally: one Vercel firewall rate-limit rule as an outer layer (Hobby allows one).
-3. **Security headers** (G4): API and frontend.
-4. **Edge caching for the Ledger and Leaderboard** (G5). The build must not depend on the API being awake.
+3. **Security headers** (G4): API and frontend, ADR 011. One fixed Content Security Policy (no nonce, so static pages and G5's edge caching keep working); the API sends `Cache-Control: no-store` everywhere for now. Rollout: `CSP_REPORT_ONLY=true` on Vercel before merging, the click-through in Chrome, Firefox and an Android phone, then enforce (docs/deployment.md, "Content Security Policy: Report-Only, then enforce").
+4. **Edge caching for the Ledger and Leaderboard** (G5). The build must not depend on the API being awake. Must prove public pages still cache with the API's `Cache-Control: no-store` (ADR 011); if they don't, loosen it only for named public GET routes.
 5. **Uptime monitor** (G2) on a new `/health/live` route with no database call, so Neon can scale down. It must call `/health` or `/health/live`: with the edge key enforced, any other direct path gets 403 and would read as down. Keeps the API awake by design; check the monitor's timeout against the ~46 s cold start and Neon's current free compute allowance first.
 6. **One rehearsed rollback** (G6) on Vercel and Render, steps verified in each platform's docs.
 7. **Remaining audit items:** a small, policy-checked ramp on staging (with abort conditions, announced before it starts), the NDPA gap list, a one-page SOC 2 checklist, the performance audit, and any remaining findings.
@@ -26,6 +26,7 @@ Agreed 5 October 2026 during the pre-launch audit. Each step is its own PR, merg
 
 ## After going live
 
+- **SRI spike: a stricter Content Security Policy.** Next.js's experimental `sri` option hashes our scripts at build time. It might let `script-src` drop `'unsafe-inline'` while static pages and edge caching keep working (ADR 011). Spike it on a branch and check whether Next's inline startup scripts still run. Adopt it only if it works without `'unsafe-inline'` and isn't still marked experimental, or if the risk is accepted in writing.
 - **Email verification at password sign-up.**
 - **Share a thought, story-style, linking to the full thesis**, with the full thesis behind sign-in.
 - **One shared style for form fields.** The same class string is copy-pasted across six files.
