@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
+import { JwtModule, type JwtSignOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
@@ -17,11 +17,10 @@ import { UsersModule } from '../users/users.module';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('JWT_SECRET'),
-        // Cast: the underlying jsonwebtoken types want a branded string
-        // literal type here, but a plain env-sourced string like "7d" is
-        // valid at runtime — this is a typing strictness mismatch, not a
-        // real type error.
-        signOptions: { expiresIn: config.get<string>('JWT_EXPIRES_IN', '7d') as any },
+        // Cast: jsonwebtoken types expiresIn as ms's template-literal
+        // StringValue ("7d", "12h"), which an env-sourced string can't be
+        // proven to match at compile time. Narrowed to that type, not any.
+        signOptions: { expiresIn: config.get<string>('JWT_EXPIRES_IN', '7d') as JwtSignOptions['expiresIn'] },
       }),
     }),
   ],
