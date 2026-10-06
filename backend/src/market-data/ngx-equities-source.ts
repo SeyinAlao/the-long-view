@@ -29,21 +29,26 @@ export async function fetchNgxEquities(fetchImpl: typeof fetch = fetch): Promise
   return { status: res.status, contentType: res.headers.get('content-type') ?? '', bodyLength: text.length, body };
 }
 
-export type ParsedFeed = { prices: MarketPrice[]; rows: number; invalid: number };
+// `missing` counts, per required field, the rows where it is absent or
+// null. Field names are our own labels, so refusals may name them.
+export type ParsedFeed = { prices: MarketPrice[]; rows: number; invalid: number; missing: Record<string, number> };
 
 const TICKER = /^[A-Z][A-Z0-9]{1,14}$/;
 const TRADE_DATE = /^(\d{4}-\d{2}-\d{2})T/;
+const REQUIRED_FIELDS = ['Symbol', 'ClosePrice', 'TradeDate'] as const;
 
 // The fields read from each row (listed in ADR 012): Symbol, ClosePrice,
 // PercChange, TradeDate. A row missing a usable symbol, close price or
 // trade date is skipped and counted, never guessed at. Anything that
 // isn't an array is zero rows.
 export function parseNgxEquities(body: unknown): ParsedFeed {
-  if (!Array.isArray(body)) return { prices: [], rows: 0, invalid: 0 };
+  const missing: Record<string, number> = Object.fromEntries(REQUIRED_FIELDS.map((field) => [field, 0]));
+  if (!Array.isArray(body)) return { prices: [], rows: 0, invalid: 0, missing };
   const prices: MarketPrice[] = [];
   const seen = new Set<string>();
   let invalid = 0;
   for (const row of body as Record<string, unknown>[]) {
+    for (const field of REQUIRED_FIELDS) if (row?.[field] == null) missing[field] += 1;
     const ticker = row?.Symbol;
     const closePrice = row?.ClosePrice;
     const tradeDate = typeof row?.TradeDate === 'string' ? TRADE_DATE.exec(row.TradeDate)?.[1] : undefined;
@@ -57,5 +62,5 @@ export function parseNgxEquities(body: unknown): ParsedFeed {
     const change = row.PercChange;
     prices.push({ ticker, closePrice, changePercent: typeof change === 'number' ? change : 0, tradeDate });
   }
-  return { prices, rows: body.length, invalid };
+  return { prices, rows: body.length, invalid, missing };
 }

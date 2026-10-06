@@ -11,6 +11,7 @@ describe('parseNgxEquities', () => {
     expect(parseNgxEquities(realRows)).toEqual({
       rows: 3,
       invalid: 0,
+      missing: { Symbol: 0, ClosePrice: 0, TradeDate: 0 },
       prices: [
         { ticker: 'MTNN', closePrice: 847, changePercent: 0.59, tradeDate: '2026-10-06' },
         { ticker: 'DANGCEM', closePrice: 1066.7, changePercent: 0, tradeDate: '2026-10-06' },
@@ -34,11 +35,11 @@ describe('parseNgxEquities', () => {
       null,
     ]);
     expect(parsed.prices).toEqual([{ ticker: 'MTNN', closePrice: 847, changePercent: 0.59, tradeDate: '2026-10-06' }]);
-    expect(parsed).toMatchObject({ rows: 10, invalid: 8 });
+    expect(parsed).toMatchObject({ rows: 10, invalid: 8, missing: { Symbol: 1, ClosePrice: 2, TradeDate: 2 } });
   });
 
   it.each([[undefined], [{ d: { results: [] } }], ['<html>'], [null]])('treats %p as no rows', (body) => {
-    expect(parseNgxEquities(body)).toEqual({ prices: [], rows: 0, invalid: 0 });
+    expect(parseNgxEquities(body)).toEqual({ prices: [], rows: 0, invalid: 0, missing: { Symbol: 0, ClosePrice: 0, TradeDate: 0 } });
   });
 });
 

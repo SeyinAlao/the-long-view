@@ -31,6 +31,25 @@ describe('assessFeed', () => {
     );
   });
 
+  it('refuses when a required field is missing from most rows, naming it', () => {
+    const renamed = rows(146).map(({ ClosePrice, ...row }) => ({ ...row, Close: ClosePrice }));
+    expect(() => assessFeed(response(renamed), lagos('2026-10-07T18:00:00'))).toThrow(
+      /required fields missing from most rows: ClosePrice \(146 of 146 rows\)\. status=200/,
+    );
+  });
+
+  it('names every field that is gone', () => {
+    const bare = rows(146).map(({ PercChange }) => ({ PercChange }));
+    expect(() => assessFeed(response(bare), lagos('2026-10-07T18:00:00'))).toThrow(
+      /Symbol \(146 of 146 rows\), ClosePrice \(146 of 146 rows\), TradeDate \(146 of 146 rows\)/,
+    );
+  });
+
+  it('still passes when only a few rows lack a field', () => {
+    const someNull = rows(146).map((row, i) => (i < 20 ? { ...row, ClosePrice: null } : row));
+    expect(assessFeed(response(someNull), lagos('2026-10-07T18:00:00')).prices).toHaveLength(126);
+  });
+
   it('allows a feed up to 5 days behind (a long weekend), and refuses one older', () => {
     const tuesdayEvening = lagos('2026-10-13T18:00:00');
     expect(assessFeed(response(rows(146, '2026-10-08')), tuesdayEvening).tradeDate).toBe('2026-10-08');
