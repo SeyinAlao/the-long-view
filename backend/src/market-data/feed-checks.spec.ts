@@ -51,7 +51,10 @@ describe('assessFeed', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(FeedRefusedError);
       const message = (error as Error).message;
-      expect(message).not.toMatch(/SECRETISH|leaked|<script>|\n/);
+      expect(message).not.toContain('SECRETISH');
+      expect(message).not.toContain('leaked');
+      // No markup or line breaks of any kind survive into a log line.
+      for (const character of ['<', '>', '\n']) expect(message).not.toContain(character);
       expect(message).toContain('type=text/htmlscript');
     }
   });
