@@ -25,16 +25,18 @@ async function openTheDraft(page: Page) {
 
 // ADR 004: the reference price is the newest real price, at most 7 days
 // old. Never the seed's ₦100 placeholder, which every company starts on.
+// The company search only offers companies with a price row, so the form
+// can't reach "no price at all"; backend e2e covers that refusal.
 test('publishing is refused without a recent real price, and succeeds with one', async ({ page }) => {
   await signUpWithApi(page, newAccount('pricer'));
+  await addPrice('MTNN', 250, 8);
 
   await page.goto('/theses/new');
   await fillThesis(page, { ticker: 'MTNN', statement: statementFor('Reference'), targetPrice: 300 });
-  await publishAndExpectRefusal(page); // no price at all
-
-  await addPrice('MTNN', 250, 8);
-  await openTheDraft(page); // "Your draft is saved" is true
   await publishAndExpectRefusal(page); // only an 8-day-old price
+
+  await openTheDraft(page); // "Your draft is saved" is true
+  await publishAndExpectRefusal(page); // still refused after reopening the draft
 
   await addPrice('MTNN', 262);
   await openTheDraft(page);

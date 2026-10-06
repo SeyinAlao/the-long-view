@@ -4,9 +4,6 @@ export interface Security {
   id: string;
   ticker: string;
   companyName: string;
-  sector: string | null;
-  currentPrice: string;
-  previousPrice: string | null;
 }
 
 export function searchSecurities(query: string) {
