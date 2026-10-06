@@ -9,6 +9,6 @@ export interface LeaderboardEntry {
   hitRate: number;
 }
 
-export function fetchLeaderboard() {
-  return apiFetch<LeaderboardEntry[]>('/leaderboard');
+export function fetchLeaderboard(init?: RequestInit) {
+  return apiFetch<LeaderboardEntry[]>('/leaderboard', init);
 }
