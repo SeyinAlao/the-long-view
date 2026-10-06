@@ -46,6 +46,33 @@ Whatever is merged to `master` here runs with the database credentials.
 CI and a single maintainer are the guard. Pinning the jobs to a commit
 would be safer but needs a manual bump after every merge.
 
+## When a day is missed
+
+A weekday whose refresh fails, or never runs, has **no price rows**.
+That can't be repaired later: NGX's public list shows only the current
+day. What that means (`evaluation.service.ts`, `theses.service.ts`):
+
+- **Grading.** A thesis is graded on the **first price recorded at or
+  after** its resolve moment (published time + horizon). If its due day
+  is missed, it is graded on the **next successful day's close** instead,
+  and nothing records that it was a day late. If no later price exists
+  yet, it stays pending and is retried on every run.
+- **Publishing.** It needs the security's latest price to be at most 7
+  days old (ADR 004). After 7 days with no successful refresh, every
+  publish is refused (409). Example: the last success was Friday 2
+  October at 20:53 UTC (Monday 5 October failed), so if nothing succeeds
+  before then, publishing stops at about 20:53 UTC on Friday 9 October.
+- **A manual run** (`workflow_dispatch`) after 4:30pm Lagos time on the
+  same weekday recovers that day. Later than that, it records the next
+  day's prices, or is refused during trading hours.
+
+**A clean week** (the jobs' condition for rollout stage 1): five
+consecutive weekday scheduled runs whose refresh succeeds with at least
+100 securities updated, each starting before 08:00 UTC the next day; on
+at least two of those days, three or more tickers match NGX's official
+closing prices exactly; and every nightly backup in that week succeeds.
+A failed or missing weekday starts the count again.
+
 ## Status
 
 Accepted.
