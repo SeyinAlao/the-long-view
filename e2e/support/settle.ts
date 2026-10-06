@@ -10,11 +10,14 @@ import type { Locator, Page } from '@playwright/test';
 // write inline styles. The second is caught by waiting until no inline
 // opacity/transform changes between two checks.
 
-const INFINITE_SKIP = `a => a.effect?.getComputedTiming().endTime !== Infinity`;
-
+// Functions, never strings: Playwright runs a string through eval, which
+// the site's Content Security Policy blocks (ADR 011).
 export async function settlePage(page: Page): Promise<void> {
-  await page.waitForFunction(
-    `document.getAnimations().filter(${INFINITE_SKIP}).every(a => a.playState !== 'running')`,
+  await page.waitForFunction(() =>
+    document
+      .getAnimations()
+      .filter((a) => a.effect?.getComputedTiming().endTime !== Infinity)
+      .every((a) => a.playState !== 'running'),
   );
   await page.waitForFunction(() => {
     const snapshot = () =>

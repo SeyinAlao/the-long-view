@@ -1,5 +1,11 @@
 import { z } from 'zod';
 
+// Zod would otherwise probe whether it may compile validators with
+// new Function(). The Content Security Policy forbids that, and browsers
+// report even a caught probe as a violation (ADR 011). jitless skips the
+// probe; validation works the same, without the compiled fast path.
+z.config({ jitless: true });
+
 // Mirrors the backend's CreateThesisDto (backend/src/theses/dto) field
 // for field. This isn't a coincidence to maintain by hand forever — it's
 // the same shape on purpose, so a validation error reads the same way
