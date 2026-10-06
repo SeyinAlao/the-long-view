@@ -122,7 +122,11 @@ at staging. The test backend always runs with `DISABLE_SCHEDULED_JOBS=true`.
   refuses and writes nothing on a non-200, fewer than 100 usable prices,
   or a newest trade date more than 5 days old in Lagos. Refusals log
   counts only, never response content. NGX's terms forbid automated
-  collection without written consent: settle that before public launch.
+  collection without written consent. Seyin is asking NGX for permission
+  and accepts the risk until it answers, on four conditions (ADR 012):
+  don't add requests, keep the User-Agent honest, show "Source: NGX,
+  prices as of <date>" before the public stage, and never republish
+  NGX's full price list.
 - `refreshPrices()` refuses (and the script exits 1) on weekdays from
   9:00am to 4:30pm Lagos time, read in Africa/Lagos, never the machine's
   zone (`trading-hours.ts`). Every refresh adds a price row, so a mid-day
@@ -161,9 +165,9 @@ FRONTEND_URL / CORS_ORIGIN / GOOGLE_CALLBACK_URL and Google's OAuth URIs.
    - Stage 1 needs **a clean week** of jobs (defined in ADR 009, "When a
      day is missed"): five consecutive weekday refreshes that succeed,
      prices checked against NGX's closes on two of them. Monday 5 October
-     failed ("parse returned only 0 entries"), so the count starts again.
-     With no successful refresh, publishing stops 7 days after the last
-     one (about 20:53 UTC on 9 October).
+     failed (NGX's page changed; fixed by PR #42, ADR 012). A manual run
+     on 6 October stored 146 prices, three matched another source, and
+     the count starts with that evening's scheduled run.
    - Scheduled runs start hours late on this repo (market job 4h22m on
      2 October; backups 5-6h on 3-4 October, both passing); the trading-hours guard keeps a very late
      run from storing next-day intraday prices. If runs are dropped or

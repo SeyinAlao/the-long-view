@@ -68,8 +68,20 @@ that day.
   - Neither host serves a `robots.txt` (404 on both, 6 October). For
     `ngxgroup.com`, which blocks plain requests, that 404 may come from
     its bot protection rather than proving none exists.
-  - **Getting NGX's written consent, or licensing the data (for example
-    NGX's X-DataPortal), is a decision before public launch.**
+  - **Decided 6 October 2026 (Seyin):** ask NGX in writing for
+    permission (non-commercial use, one request per weekday). Until NGX
+    answers, accept the risk in writing, on these conditions:
+    - one request per run, no retry
+    - an honest User-Agent naming the app
+    - "Source: NGX, prices as of <date>" on the site before any public
+      stage of the rollout
+    - no republishing of NGX's full price list: the site shows a price
+      only where a thesis needs it.
+
+    Before the public stage there must be either NGX's written consent
+    or this acceptance with all four conditions met. A refusal from NGX
+    reopens the decision (licensed data, for example NGX's
+    X-DataPortal, or another source).
 - **GitHub's runners** might be refused where a laptop isn't. Plan B
   is below.
 
