@@ -36,6 +36,7 @@ Changing `JWT_SECRET` signs everyone out. It never deletes data.
 |---|---|
 | `BACKEND_URL` | The API's URL, e.g. `https://<service>.onrender.com`. Read at **build** time by the `/api` rewrite, so changing it needs a redeploy. |
 | `EDGE_PROXY_KEY` | The same value as on Render, type **Secret**, for **Production and Preview**. Read at run time by `proxy.ts` and the server-side fetches; never a `NEXT_PUBLIC_` variable. See "The edge key". |
+| `CSP_REPORT_ONLY` | `true` sends the Content Security Policy as Report-Only: browsers report what it would block but block nothing. Read at **build** time, so switching needs a redeploy. Type **Config** (not a secret), Production and Preview. Unset means enforcing. See "Content Security Policy: Report-Only, then enforce". |
 | `API_TIMEOUT_MS` | **Leave unset.** How long a page waits for the API before showing the error page; default 90000 (90 s), which covers the ~46 s cold start and stays under Hobby's 300 s function limit. Only the browser tests set it, to 20000. |
 
 ### Google Cloud OAuth client
@@ -229,6 +230,49 @@ Nothing else keeps the key. If it is ever lost or exposed, make a new one the sa
 
 **One week after merging, check Vercel's usage.** `proxy.ts` now runs on every `/api` call, and Vercel bills proxy (Routing Middleware) as compute. On Hobby the included amounts are 1,000,000 function invocations and 4 hours of Active CPU a month. In the project's **Observability** tab, find the Routing Middleware invocation counts. In the team's **Usage** page, compare Function Invocations and Active CPU with those amounts. Vercel's docs describe both places; the exact menu names haven't been checked in the dashboard.
 
+## Content Security Policy: Report-Only, then enforce
+
+The frontend sends one fixed Content Security Policy on every page (ADR 011). Before it blocks anything for real, run it in **Report-Only** on staging: browsers then print what the policy *would* block in the console, and block nothing. The API's headers need no switch; they apply as soon as it deploys.
+
+**1. Before merging the change that adds the policy:**
+
+1. Vercel: the project, then **Settings**, then **Environment Variables**. Add key `CSP_REPORT_ONLY`, value `true`, type **Config** (it isn't a secret), for **Production** and **Preview**. Save.
+2. Optional, to keep the console clean: **Settings**, then **General**, then **Vercel Toolbar**: set **Preview** and **Production** to **Off**. The toolbar needs `https://vercel.live`, which the policy doesn't allow. If you leave it on, ignore messages that mention `vercel.live`.
+
+**2. Merge.** Vercel builds with Report-Only. Check which mode is live:
+
+```
+curl.exe -sI https://the-long-view-staging.vercel.app/ | findstr /i "content-security-policy"
+```
+
+The line starts `content-security-policy-report-only:` in Report-Only and `content-security-policy:` when enforcing.
+
+**3. Click through the site with the console open.** Use a private window, so extensions and Vercel sign-in add nothing. Do it three times:
+- **Desktop Chrome:** F12, then the **Console** tab.
+- **Desktop Firefox:** F12, then the **Console** tab.
+- **An Android phone:** turn on **Developer options**, then **USB debugging**. Connect it by USB, open Chrome on the phone, and on the computer open `chrome://inspect#devices` in Chrome and click **inspect** under the phone's tab.
+
+Visit, in order:
+- [ ] Home
+- [ ] Ledger (`/feed`)
+- [ ] Leaderboard
+- [ ] A published thesis
+- [ ] Sign up (a throwaway account)
+- [ ] Sign out, then sign in with email and password
+- [ ] Google sign-in, all the way round: start from a thesis page and check you come back to it
+- [ ] Dashboard
+- [ ] My research (`/theses/mine`)
+- [ ] Write a thesis: type in the company search and pick a company, move the conviction slider, save a draft
+- [ ] Publish it
+- [ ] Post a counter-thesis on someone else's thesis (a second account)
+- [ ] The error pages: a page that doesn't exist (`/no-such-page`), and a thesis that doesn't exist (`/theses/no-such-id`)
+
+**Expected:** no console message that mentions `Content Security Policy` or `Report Only`. If you see one, note the page and the message's first line, and don't enforce. Bring it to the next session.
+
+**4. Enforce.** Vercel, **Environment Variables**: delete `CSP_REPORT_ONLY`. Then **Deployments**, the newest **Production** deployment, the **...** menu, **Redeploy**. The value is read when the site is built, so this is needed. When it's done, step 2's `curl` shows `content-security-policy:`. Reload the home page, a thesis and the write-a-thesis page with the console open: still no messages.
+
+**Undo:** add `CSP_REPORT_ONLY` = `true` again and **Redeploy** the same way. Pages stop blocking anything once that build is live.
+
 ## Running the tests locally
 
 The backend e2e tests and the browser tests both wipe their database, so they run against a **local** Postgres 18, not over the internet. CI is the authoritative run; this is for checking before you push.
@@ -265,4 +309,6 @@ The backend e2e tests and the browser tests both wipe their database, so they ru
 - [ ] Sign out, wait at least 20 minutes so the API goes to sleep, then sign back in with Google: everything from before is still there, and the first page after the wait loads (slowly) rather than failing.
 - [ ] A direct request to the API without the edge key gets `403` (`curl.exe -s -o NUL -w "%{http_code}
 " https://<api>/leaderboard`); `/health` still answers.
-- [ ] `curl -sI https://<frontend>/api/leaderboard` shows `x-vercel-enable-rewrite-caching: 0`, or at least no `x-vercel-cache: HIT`.
+- [ ] `curl -sI https://<frontend>/api/leaderboard` shows `x-vercel-enable-rewrite-caching: 0`, or at least no `x-vercel-cache: HIT`. `next start` doesn't show that header locally, so this live check is the only place it is seen (ADR 011).
+- [ ] `curl.exe -sI https://<frontend>/` shows `content-security-policy:` (not `-report-only`, once enforced), `x-content-type-options: nosniff` and `x-frame-options: DENY`, and no `x-powered-by`.
+- [ ] `curl.exe -sI https://<frontend>/api/leaderboard` shows `cache-control: no-store` and `content-security-policy: default-src 'none'; frame-ancestors 'none'` (the API's own).

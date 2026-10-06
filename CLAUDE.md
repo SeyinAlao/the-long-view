@@ -104,6 +104,14 @@ at staging. The test backend always runs with `DISABLE_SCHEDULED_JOBS=true`.
   browser sent) and server-side fetches send too. Every limit number
   lives in `backend/src/security/rate-limits.ts`. Security log lines go
   through `SecurityLog` only: refs, never emails, IPs, tokens or messages.
+- Security headers (ADR 011): one fixed CSP for all pages, set in
+  `frontend/security-headers.ts` - no nonce, which would make every page
+  dynamic and break G5's caching. Never add `eval`, inline event
+  handlers or another site's scripts. Zod stays `jitless`. The browser
+  tests fail on any CSP violation, so pass functions (never strings) to
+  `waitForFunction`. The `/api` rule (`x-vercel-enable-rewrite-caching:
+  0`) stays the only header rule on `/api`; the API adds its own,
+  including `Cache-Control: no-store`.
 - In-process cron jobs are off when `DISABLE_SCHEDULED_JOBS=true` (Render).
 - NGX trading hours are 9:00am-4:00pm WAT since 27 April 2026. Don't assume
   the old 2:30pm close anywhere.
