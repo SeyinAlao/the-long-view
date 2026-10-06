@@ -2,45 +2,41 @@ import type { Page } from '@playwright/test';
 import { test, expect } from '../support/fixtures';
 import { API_TIMEOUT_MS } from '../support/env';
 import { setRelay as relay } from '../support/relay-control';
-import { addPrice } from '../support/db';
 import { expectNoAxeViolations } from '../support/a11y';
-import { newAccount } from '../support/accounts';
-import { createThesis } from '../support/theses-api';
+import { publishedThesis } from '../support/theses-api';
 
-// When the API fails, public pages show this app's own error page inside
-// the normal layout - header and navigation still there - and "Try
-// again" recovers once the API is back. A waking API is not a failure:
-// the skeleton stays up until the server-side timeout.
+// When the API fails, a page rendered on every request shows this app's
+// own error page inside the normal layout - header and navigation still
+// there - and "Try again" recovers once the API is back. A waking API is
+// not a failure: the skeleton stays up until the server-side timeout.
+// A thesis page is the public example. The cached Ledger and
+// Leaderboard keep their last good page instead (cached-pages.spec.ts).
 const errorHeading = (page: Page) => page.getByRole('heading', { name: "This page couldn't load." });
+const thesisHeading = (page: Page) => page.getByRole('heading', { name: 'MTN Nigeria Communications Plc' });
 
-const PAGES = [
-  { path: '/feed', heading: 'Published theses.' },
-  { path: '/leaderboard', heading: "Who's been right." },
-];
+test('a thesis page: a failing API shows the error page in the site, and Try again recovers', async ({
+  page,
+  request,
+}) => {
+  const id = await publishedThesis(request, 'Recover');
+  await relay(request, 'fail=503');
+  await page.goto(`/theses/${id}`);
 
-for (const { path, heading } of PAGES) {
-  test(`${path}: a failing API shows the error page in the site, and Try again recovers`, async ({
-    page,
-    request,
-  }) => {
-    await relay(request, 'fail=503');
-    await page.goto(path);
+  await expect(errorHeading(page)).toBeVisible();
+  await expect(page.locator('header').getByRole('link', { name: 'Ledger' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Back to the front page' })).toBeVisible();
+  await expectNoAxeViolations(page, 'thesis error page');
 
-    await expect(errorHeading(page)).toBeVisible();
-    await expect(page.locator('header').getByRole('link', { name: 'Ledger' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Back to the front page' })).toBeVisible();
-    await expectNoAxeViolations(page, `${path} error page`);
-
-    await relay(request, 'delayMs=0');
-    await page.getByRole('button', { name: 'Try again' }).click();
-    await expect(page.getByRole('heading', { name: heading })).toBeVisible();
-    await expect(errorHeading(page)).toHaveCount(0);
-  });
-}
+  await relay(request, 'delayMs=0');
+  await page.getByRole('button', { name: 'Try again' }).click();
+  await expect(thesisHeading(page)).toBeVisible();
+  await expect(errorHeading(page)).toHaveCount(0);
+});
 
 test('an API that drops the connection shows the error page, not a broken one', async ({ page, request }) => {
+  const id = await publishedThesis(request, 'Dropped');
   await relay(request, 'fail=drop');
-  await page.goto('/feed');
+  await page.goto(`/theses/${id}`);
   await expect(errorHeading(page)).toBeVisible();
 });
 
@@ -53,10 +49,7 @@ for (const status of [500, 503]) {
     page,
     request,
   }) => {
-    await addPrice('MTNN', 250);
-    expect((await request.post('/api/auth/register', { data: newAccount('outage_author') })).status()).toBe(201);
-    const id = await createThesis(request, { ticker: 'MTNN', label: 'Outage', publish: true });
-
+    const id = await publishedThesis(request, 'Outage');
     await relay(request, `fail=${status}`);
     await page.goto(`/theses/${id}`);
 
@@ -82,9 +75,10 @@ test('a slow API keeps the skeleton until the timeout, and only then shows the e
   request,
 }) => {
   test.setTimeout(API_TIMEOUT_MS + 30_000);
+  const id = await publishedThesis(request, 'Slow');
   await relay(request, `delayMs=${API_TIMEOUT_MS + 15_000}`);
   const started = Date.now();
-  await page.goto('/feed', { waitUntil: 'commit' });
+  await page.goto(`/theses/${id}`, { waitUntil: 'commit' });
 
   const skeleton = page.locator('main[aria-busy="true"]');
   await expect(skeleton).toBeVisible({ timeout: 1_500 });

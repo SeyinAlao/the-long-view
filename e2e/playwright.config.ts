@@ -3,6 +3,7 @@ import {
   API_TIMEOUT_MS,
   BACKEND_PORT,
   DATABASE_URL,
+  E2E_REVALIDATE_SECONDS,
   EDGE_PROXY_KEY,
   FAKE_GOOGLE_PORT,
   FAKE_GOOGLE_URL,
@@ -16,6 +17,9 @@ import {
 // cold start), and the frontend built to call the API through that
 // relay. A fourth stands in for Google (support/fake-google.mjs). BACKEND_URL is fixed into the frontend at build time, which is
 // why the relay is always in the path rather than swapped in later.
+// Playwright starts these in order, each once the one before answers,
+// so the frontend's build reaches a working API and prerenders the
+// cached Ledger and Leaderboard from it (ADR 013).
 //
 // One worker: the tests share one database and one relay, and the
 // cold-start test changes the relay's delay for everyone.
@@ -98,6 +102,7 @@ export default defineConfig({
       env: {
         BACKEND_URL: RELAY_URL,
         API_TIMEOUT_MS: String(API_TIMEOUT_MS),
+        E2E_REVALIDATE_SECONDS: String(E2E_REVALIDATE_SECONDS),
         NEXT_TELEMETRY_DISABLED: '1',
         EDGE_PROXY_KEY,
       },
