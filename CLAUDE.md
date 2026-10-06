@@ -21,7 +21,8 @@ npm workspaces monorepo. Run installs from the repo root.
 
 Backend (`backend/`): `dev`, `lint`, `typecheck`, `test`, `test:e2e`, `build`,
 `db:seed`, `market-data:refresh`, `market-data:check` (read-only: no
-database, no `.env`), `evaluate:pending`.
+database, no `.env`), `market-data:freshness` (read-only; the stale
+price alert), `evaluate:pending`.
 Frontend (`frontend/`): `dev`, `lint`, `typecheck`, `build`.
 Root: `test:browser` (Playwright; builds and starts everything itself).
 
