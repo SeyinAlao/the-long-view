@@ -118,6 +118,10 @@ at staging. The test backend always runs with `DISABLE_SCHEDULED_JOBS=true`.
 - API: Render free, region ohio, from `render.yaml` (Node 22, built from the
   repo root). https://the-long-view-api.onrender.com - sleeps after 15 idle
   minutes; measured cold start about 46 s. Pages show skeletons meanwhile.
+  `EDGE_PROXY_ENFORCE=true` there since 6 October: a direct call without
+  the edge key gets 403, so call the API through the Vercel domain
+  (`/api/...`); only `/health` (and `/health/live`) answer directly.
+  Render's health check path is blank, so it only probes the port.
 - Database: Neon, AWS us-east-2. Branches: `production` (currently holds
   development test data), `staging` (what the site uses now), `test` (e2e).
 - Migrations are manual, against the direct URL: `$env:DIRECT_URL=...`,
@@ -151,14 +155,15 @@ FRONTEND_URL / CORS_ORIGIN / GOOGLE_CALLBACK_URL and Google's OAuth URIs.
    Dependabot alerts, secret scanning), `master` ruleset (PR + all three CI
    jobs), error pages (PR #30), read-only CI token (PR #31), the three
    auth PRs (#33 citext + session revocation, #34/#35 Google account
-   linking, #37 OAuth `state` + return path). Order from here (details
-   in docs/backlog.md):
-   1. G3 rate limiting + F-08 security logging (ADR 010). Set
-      `EDGE_PROXY_KEY` on Render and Vercel **before** it merges, then
-      check and enforce (docs/deployment.md, "The edge key").
-   2. G4 security headers, G5 edge caching for Ledger
-      and Leaderboard, G2 uptime monitor on `/health/live`, G6 a rehearsed
-      rollback on Vercel and Render - in that order.
+   linking, #37 OAuth `state` + return path), G3 rate limiting + F-08
+   security logging (#38, ADR 010; enforced and verified on staging 6
+   October). Order from here (details in docs/backlog.md):
+   1. G4 security headers, G5 edge caching for Ledger
+      and Leaderboard, G2 uptime monitor on `/health/live` (it must call
+      `/health` or `/health/live`: every other path needs the edge key),
+      G6 a rehearsed rollback on Vercel and Render - in that order.
+   2. **12 October:** one week after #38, check Vercel's proxy usage
+      (docs/deployment.md, "The edge key", last paragraph).
    3. Remaining audit items: staging ramp (policies cited, abort
       conditions, tell Seyin before it starts), NDPA gap list, one-page
       SOC 2 checklist, performance audit.
