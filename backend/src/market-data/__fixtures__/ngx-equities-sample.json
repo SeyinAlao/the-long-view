@@ -1,0 +1,20 @@
+[
+  {
+    "Symbol": "MTNN",
+    "ClosePrice": 847,
+    "PercChange": 0.59,
+    "TradeDate": "2026-10-06T00:00:00"
+  },
+  {
+    "Symbol": "DANGCEM",
+    "ClosePrice": 1066.7,
+    "PercChange": null,
+    "TradeDate": "2026-10-06T00:00:00"
+  },
+  {
+    "Symbol": "GTCO",
+    "ClosePrice": 132.5,
+    "PercChange": 0.23,
+    "TradeDate": "2026-10-06T00:00:00"
+  }
+]
