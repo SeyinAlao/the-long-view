@@ -18,6 +18,8 @@ Agreed 5 October 2026 during the pre-launch audit. Each step is its own PR, merg
 
 ### Go-live items
 
+- **NGX's permission for price data** (ADR 012). NGX's Terms & Conditions forbid automated data collection without its express written consent. Ask NGX for written consent, or license the data (for example X-DataPortal), before the public stage of the rollout. Owner: Seyin.
+
 - **Reset the Neon `neondb_owner` password** and update every environment's connection strings. The current one was shared outside the project during setup. At the same time, give the API and the jobs their own least-privilege database roles.
 - **Publish the Google OAuth consent screen**, so any Google account can sign in, not only listed test users.
 - **Daily jobs and nightly backup on GitHub Actions** (scheduled runs confirmed: they start 4-6 hours late, which is harmless), in the private `the-long-view-backups` repo (ADR 009). Since publishing requires a real price from the last 7 days, the refresh job is what keeps publishing possible at all, and Neon's free plan only restores to about 6 hours back. The in-process schedulers already run at the new times (5:30pm / 6:00pm Lagos). The workflows are live, a test restore passed and a failed scheduled run emailed (2 October 2026). Still to do: a week of checking fetched prices against NGX's official closes, and switching both secrets to production.
@@ -33,6 +35,10 @@ Agreed 5 October 2026 during the pre-launch audit. Each step is its own PR, merg
 - **One shared "page is ready" wait in the browser tests.** Several tests type into a field straight after `page.goto`, and a key pressed before React hydrates the page is dropped. The account-switch test hit this in October 2026 and now retypes until the form responds (its own workaround). Replace per-test workarounds with one helper that waits for hydration (for example a marker the root layout sets once mounted), and use it in every test that types after loading a page.
 
 - **Update `actions/upload-artifact` in the private jobs repo** (low priority). The backup uses v4, and every run warns that it runs on Node 20 and is being forced onto Node 24. The latest release is v7.0.1 (April 2026). Read the v5-v7 release notes for breaking changes, update the version, then confirm with one manual backup run that the artifact still uploads (its size, the 90-day retention, compression off). Do it sooner if the warning becomes an error.
+
+- **"Source: NGX, prices as of <date>"** visible on the site (the Ledger, a thesis page), from the newest price row.
+- **An alert when prices are stale:** when the newest price is more than 2 days old (counting weekdays), email or flag it, before the 7-day publishing limit is near (ADR 009).
+- **Remove Puppeteer** once NGX's JSON source has run cleanly for a week (ADR 012, "Follow-ups"). Kept until then for Plan B.
 
 ## Known and accepted
 

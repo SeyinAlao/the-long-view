@@ -20,7 +20,8 @@ npm workspaces monorepo. Run installs from the repo root.
 ## Commands
 
 Backend (`backend/`): `dev`, `lint`, `typecheck`, `test`, `test:e2e`, `build`,
-`db:seed`, `market-data:refresh`, `evaluate:pending`.
+`db:seed`, `market-data:refresh`, `market-data:check` (read-only: no
+database, no `.env`), `evaluate:pending`.
 Frontend (`frontend/`): `dev`, `lint`, `typecheck`, `build`.
 Root: `test:browser` (Playwright; builds and starts everything itself).
 
@@ -115,6 +116,13 @@ at staging. The test backend always runs with `DISABLE_SCHEDULED_JOBS=true`.
 - In-process cron jobs are off when `DISABLE_SCHEDULED_JOBS=true` (Render).
 - NGX trading hours are 9:00am-4:00pm WAT since 27 April 2026. Don't assume
   the old 2:30pm close anywhere.
+- Prices come from NGX's equities JSON (ADR 012): one request per run,
+  no retry, an honest User-Agent, and only `ngx-equities-source.ts`
+  knows the source (everything else uses `MarketPrice`). A refresh
+  refuses and writes nothing on a non-200, fewer than 100 usable prices,
+  or a newest trade date more than 5 days old in Lagos. Refusals log
+  counts only, never response content. NGX's terms forbid automated
+  collection without written consent: settle that before public launch.
 - `refreshPrices()` refuses (and the script exits 1) on weekdays from
   9:00am to 4:30pm Lagos time, read in Africa/Lagos, never the machine's
   zone (`trading-hours.ts`). Every refresh adds a price row, so a mid-day
