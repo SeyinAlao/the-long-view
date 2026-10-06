@@ -126,7 +126,10 @@ at staging. The test backend always runs with `DISABLE_SCHEDULED_JOBS=true`.
   and accepts the risk until it answers, on four conditions (ADR 012):
   don't add requests, keep the User-Agent honest, show "Source: NGX,
   prices as of <date>" before the public stage, and never republish
-  NGX's full price list.
+  NGX's full price list. So a company in any API response has only
+  `PUBLIC_SECURITY_FIELDS` (id, ticker, companyName), selected in the
+  query; never return `currentPrice` or `previousPrice`. The company
+  search offers only companies with at least one Price row.
 - `refreshPrices()` refuses (and the script exits 1) on weekdays from
   9:00am to 4:30pm Lagos time, read in Africa/Lagos, never the machine's
   zone (`trading-hours.ts`). Every refresh adds a price row, so a mid-day
