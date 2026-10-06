@@ -29,8 +29,14 @@ Vercel serves them from its edge cache.
   with a list that loads in the browser through TanStack Query
   (`LiveThesisFeed`, `LiveLeaderboard`), and the first regeneration
   replaces it. CI's frontend job builds with no API, so it proves the
-  build never depends on the API. On Vercel, the build waits for a
-  sleeping API (up to the 90 s server timeout) before falling back.
+  build never depends on the API. The build waits at most 12 s for the
+  API, then falls back. Next fails a page that takes more than 60 s to
+  build (`staticPageGenerationTimeout`, default 60, in Next 16.3.8's
+  `config-shared.js`), retrying twice first, and Render can take about
+  46 s to wake, so the runtime's 90 s wait would fail the deploy.
+  `npm run build:hanging-api` (frontend) builds against an API that
+  never answers: it passes in about 30 s. Without the 12 s limit the
+  same build failed after 3 attempts and 201 s.
 - **At runtime** a failure throws, and Next keeps serving the last good
   page (Next's ISR guide, "Error handling and revalidation"). Next then
   re-stores that page and retries after the page's interval, clamped
@@ -53,8 +59,20 @@ loads in the browser), so one cached copy is safe to share.
 
 - The fixed Content Security Policy (ADR 011) is a `next.config` header,
   so it's sent with cached pages too. The browser tests check it on a
-  cache hit, and on a Vercel Preview it's checked by hand alongside
-  `x-vercel-cache: HIT` and a growing `age` on a second request.
+  cache hit.
+- **Partial check on Vercel (Preview, 6 October 2026, by Seyin in
+  Chrome).** The captured `/feed` response was the router's prefetch
+  (`x-matched-path: /feed.segments/_tree.segment.rsc`): `x-vercel-cache:
+  STALE`, `age: 65`, `cache-control: public, max-age=0,
+  must-revalidate`, `x-nextjs-prerender: 1`, with the full CSP, COOP,
+  Permissions-Policy, nosniff, X-Frame-Options and HSTS. So Vercel's
+  edge served the cached copy with every security header.
+  `x-nextjs-postponed: 2` only marks a response from Next's per-segment
+  prefetch cache; `1` would mean a partial (PPR) page, which we don't
+  use. The only CSP block was Vercel's own Preview toolbar
+  (`vercel.live`), which stays out of the policy. Still to check, on
+  the live site after merging: the page itself (not the prefetch)
+  showing `x-vercel-cache: HIT` and a growing `age`.
 - The API sends `Cache-Control: no-store` (ADR 011). That doesn't stop
   the pages being cached: Next's page cache follows the page's
   `revalidate`, not the API's response headers.
