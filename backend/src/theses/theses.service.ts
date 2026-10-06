@@ -1,6 +1,7 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SecuritiesService } from '../securities/securities.service';
+import { PUBLIC_SECURITY_FIELDS } from '../securities/public-security-fields';
 import { CreateThesisDto } from './dto/create-thesis.dto';
 import { UpdateThesisDto } from './dto/update-thesis.dto';
 
@@ -16,7 +17,7 @@ const MAX_REFERENCE_PRICE_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 const THESIS_INCLUDE = {
   metrics: true,
-  security: true,
+  security: { select: PUBLIC_SECURITY_FIELDS },
   author: { select: { id: true, username: true, name: true } },
 } as const;
 
