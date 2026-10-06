@@ -14,7 +14,7 @@ Agreed 5 October 2026 during the pre-launch audit. Each step is its own PR, merg
 6. **One rehearsed rollback** (G6) on Vercel and Render, steps verified in each platform's docs.
 7. **Remaining audit items:** a small, policy-checked ramp on staging (with abort conditions, announced before it starts), the NDPA gap list, a one-page SOC 2 checklist, the performance audit, and any remaining findings.
 8. **Go-live items** (below).
-9. **Three-stage rollout:** Seyin and two friends, then a small group, then public. Each stage moves on only when its agreed exit criteria are met; stages 1 and 2 run 7 days each.
+9. **Three-stage rollout:** Seyin and two friends, then a small group, then public. Each stage moves on only when its agreed exit criteria are met; stages 1 and 2 run 7 days each. Before stage 1: a clean week of the daily jobs (ADR 009, "When a day is missed").
 
 ### Go-live items
 
@@ -31,6 +31,8 @@ Agreed 5 October 2026 during the pre-launch audit. Each step is its own PR, merg
 - **Share a thought, story-style, linking to the full thesis**, with the full thesis behind sign-in.
 - **One shared style for form fields.** The same class string is copy-pasted across six files.
 - **One shared "page is ready" wait in the browser tests.** Several tests type into a field straight after `page.goto`, and a key pressed before React hydrates the page is dropped. The account-switch test hit this in October 2026 and now retypes until the form responds (its own workaround). Replace per-test workarounds with one helper that waits for hydration (for example a marker the root layout sets once mounted), and use it in every test that types after loading a page.
+
+- **Update `actions/upload-artifact` in the private jobs repo** (low priority). The backup uses v4, and every run warns that it runs on Node 20 and is being forced onto Node 24. The latest release is v7.0.1 (April 2026). Read the v5-v7 release notes for breaking changes, update the version, then confirm with one manual backup run that the artifact still uploads (its size, the 90-day retention, compression off). Do it sooner if the warning becomes an error.
 
 ## Known and accepted
 

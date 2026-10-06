@@ -150,8 +150,12 @@ FRONTEND_URL / CORS_ORIGIN / GOOGLE_CALLBACK_URL and Google's OAuth URIs.
    age-encrypted, 90-day artifacts). Both passed manual runs; the first
    backup was 43.6 KB (about 4 MB at 90 days of the 500 MB allowance), and
    a restore into an empty database matched its row counts. Remaining:
-   - For the first week, compare a few fetched prices with NGX's
-     official closing prices to confirm 5:30pm catches the final ones.
+   - Stage 1 needs **a clean week** of jobs (defined in ADR 009, "When a
+     day is missed"): five consecutive weekday refreshes that succeed,
+     prices checked against NGX's closes on two of them. Monday 5 October
+     failed ("parse returned only 0 entries"), so the count starts again.
+     With no successful refresh, publishing stops 7 days after the last
+     one (about 20:53 UTC on 9 October).
    - Scheduled runs start hours late on this repo (market job 4h22m on
      2 October; backups 5-6h on 3-4 October, both passing); the trading-hours guard keeps a very late
      run from storing next-day intraday prices. If runs are dropped or
