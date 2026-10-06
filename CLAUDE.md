@@ -13,7 +13,7 @@ npm workspaces monorepo. Run installs from the repo root.
 - `frontend/` - Next.js 16 App Router, React 19, TanStack Query, Zustand, Tailwind v4
 - `e2e/` - Playwright browser tests (+ axe-core), run against a real API,
   frontend and a delay relay; CI job "Browser tests"
-- `docs/decisions/` - ADRs 001-009. Read the relevant one before changing that area.
+- `docs/decisions/` - ADRs 001-013. Read the relevant one before changing that area.
 - `docs/deployment.md` - runbook: hosts, every env var, setup order, migrations
 - `docs/backlog.md` - agreed deferred work, split before / after launch
 
@@ -105,6 +105,13 @@ at staging. The test backend always runs with `DISABLE_SCHEDULED_JOBS=true`.
   browser sent) and server-side fetches send too. Every limit number
   lives in `backend/src/security/rate-limits.ts`. Security log lines go
   through `SecurityLog` only: refs, never emails, IPs, tokens or messages.
+- The Ledger (`/feed`) and Leaderboard are cached pages (ISR, ADR 013):
+  `revalidate = 60` and `300`, literals, time-based only, no Server
+  Action or on-demand revalidation. Their data goes through
+  `loadForCachedPage`: a failure is tolerated only during `next build`
+  and throws at runtime, so Next keeps the last good page. Never use
+  request-time APIs (`cookies()`, `headers()`) on them, and never give
+  their fetch `no-store`: either makes them dynamic.
 - Security headers (ADR 011): one fixed CSP for all pages, set in
   `frontend/security-headers.ts` - no nonce, which would make every page
   dynamic and break G5's caching. Never add `eval`, inline event

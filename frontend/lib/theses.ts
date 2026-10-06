@@ -109,9 +109,9 @@ export function discardThesis(id: string) {
   return apiFetch<{ success: boolean }>(`/theses/${id}`, { method: 'DELETE' });
 }
 
-export function fetchPublishedTheses(ticker?: string) {
+export function fetchPublishedTheses(ticker?: string, init?: RequestInit) {
   const params = ticker ? `?ticker=${encodeURIComponent(ticker)}` : '';
-  return apiFetch<Thesis[]>(`/theses${params}`);
+  return apiFetch<Thesis[]>(`/theses${params}`, init);
 }
 
 export function fetchMyTheses() {

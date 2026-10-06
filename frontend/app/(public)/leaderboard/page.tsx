@@ -1,12 +1,15 @@
 import { fetchLeaderboard } from '@/lib/leaderboard';
-import { LeaderboardTable } from '@/components/leaderboard/leaderboard-table';
+import { loadForCachedPage } from '@/lib/cached-page-data';
+import { LeaderboardList } from '@/components/leaderboard/leaderboard-list';
+import { LiveLeaderboard } from '@/components/leaderboard/live-leaderboard';
 
-// Same reason as the feed: this fetches from the backend, which isn't
-// running while `next build` prerenders static pages.
-export const dynamic = 'force-dynamic';
+// Cached at Vercel's edge and regenerated in the background at most
+// every 5 minutes (ADR 013). Rankings only change after the evening
+// evaluation job. A literal: Next.js requires one here.
+export const revalidate = 300;
 
 export default async function LeaderboardPage() {
-  const entries = await fetchLeaderboard();
+  const entries = await loadForCachedPage(fetchLeaderboard);
 
   return (
     <main className="mx-auto min-h-screen max-w-2xl px-5 py-10 sm:px-8 sm:py-16">
@@ -18,14 +21,7 @@ export default async function LeaderboardPage() {
         and been graded against real prices appear here.
       </p>
 
-      {entries.length === 0 ? (
-        <p className="py-10 text-sm text-muted">
-          Nothing has been graded yet. Rankings appear when the first published call reaches its
-          horizon.
-        </p>
-      ) : (
-        <LeaderboardTable entries={entries} />
-      )}
+      {entries ? <LeaderboardList entries={entries} /> : <LiveLeaderboard />}
     </main>
   );
 }

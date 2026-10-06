@@ -33,9 +33,13 @@ test('sign up, draft, re-save, publish, see it on the Ledger, be countered, sign
   await page.getByRole('button', { name: 'Publish thesis' }).click();
   await expect(page.getByRole('heading', { name: 'Locked. The record is keeping time.' })).toBeVisible();
 
-  await page.goto('/feed');
+  // The Ledger is a cached page (ADR 013): the thesis appears once a
+  // regeneration has run, seconds later in the test build.
   const card = page.getByRole('link', { name: /DANGCEM/ });
-  await expect(card).toBeVisible();
+  await expect(async () => {
+    await page.goto('/feed');
+    await expect(card).toBeVisible({ timeout: 1_000 });
+  }).toPass({ timeout: 15_000 });
   await expect(card).toContainText('Target ₦320');
   await signOut(page);
 

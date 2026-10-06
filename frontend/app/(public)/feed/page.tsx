@@ -1,23 +1,23 @@
 import { fetchPublishedTheses } from '@/lib/theses';
-import { ThesisFeedCard } from '@/components/theses/thesis-feed-card';
+import { loadForCachedPage } from '@/lib/cached-page-data';
+import { ThesisFeedList } from '@/components/theses/thesis-feed-list';
+import { LiveThesisFeed } from '@/components/theses/live-thesis-feed';
 
-export const dynamic = 'force-dynamic';
+// Cached at Vercel's edge and regenerated in the background at most
+// once a minute (ADR 013), so visitors never wait for a sleeping API. A
+// new thesis appears within about a minute of publishing. A literal:
+// Next.js requires one here.
+export const revalidate = 60;
 
 export default async function FeedPage() {
-  const theses = await fetchPublishedTheses();
+  const theses = await loadForCachedPage((init) => fetchPublishedTheses(undefined, init));
 
   return (
     <main className="mx-auto min-h-screen max-w-2xl px-5 py-10 sm:px-8 sm:py-16">
       <p className="text-[11px] uppercase tracking-[0.1em] text-muted">The ledger</p>
       <h1 className="font-display mt-2 text-4xl">Published theses.</h1>
 
-      <div className="mt-8">
-        {theses.length === 0 ? (
-          <p className="py-8 text-sm text-muted">Nothing published yet — the first call is still ahead.</p>
-        ) : (
-          theses.map((thesis) => <ThesisFeedCard key={thesis.id} thesis={thesis} />)
-        )}
-      </div>
+      <div className="mt-8">{theses ? <ThesisFeedList theses={theses} /> : <LiveThesisFeed />}</div>
     </main>
   );
 }

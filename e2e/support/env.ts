@@ -48,6 +48,11 @@ export const RELAY_URL = `http://127.0.0.1:${RELAY_PORT}`;
 // well above the cold-start test's 12s delay, which must not time out.
 export const API_TIMEOUT_MS = 20_000;
 
+// How often the cached Ledger and Leaderboard regenerate in the test
+// build (frontend/lib/cached-page-data.ts), instead of production's 60s
+// and 300s, so a new thesis shows within seconds.
+export const E2E_REVALIDATE_SECONDS = 2;
+
 // The fake Google (support/fake-google.mjs). IPv4 literal: the API only
 // accepts Google endpoint overrides on 127.0.0.1.
 export const FAKE_GOOGLE_PORT = 4200;
