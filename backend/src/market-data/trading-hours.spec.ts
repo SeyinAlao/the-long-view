@@ -12,11 +12,11 @@ function setUp() {
     price: { create: jest.fn() },
   };
   const service = new MarketDataService(prisma as unknown as PrismaService);
-  const fetchPage = jest.spyOn(service, 'fetchNgxPriceListPage').mockResolvedValue('');
-  // Enough parsed entries to pass refreshPrices' own sanity check.
-  jest
-    .spyOn(service, 'parsePriceList')
-    .mockReturnValue(Array.from({ length: 120 }, (_, i) => ({ ticker: `T${i}`, price: 1, changePercent: 0 })));
+  // Enough usable prices, recent enough, to pass the feed's own checks.
+  const rows = Array.from({ length: 120 }, (_, i) => ({ Symbol: `T${i}`, ClosePrice: 1, PercChange: 0, TradeDate: '2026-10-07T00:00:00' }));
+  const fetchPage = jest
+    .spyOn(service, 'fetchFeed')
+    .mockResolvedValue({ status: 200, contentType: 'application/json', bodyLength: 1, body: rows });
   return { service, prisma, fetchPage };
 }
 
@@ -45,7 +45,11 @@ describe('MarketDataService.refreshPrices during NGX trading hours', () => {
   ])('allows a refresh %s', async (_, time) => {
     const { service, fetchPage } = setUp();
 
-    await expect(service.refreshPrices(lagos(time))).resolves.toEqual({ updated: 0, skippedUnrecognized: 120 });
+    await expect(service.refreshPrices(lagos(time))).resolves.toEqual({
+      updated: 0,
+      skippedUnrecognized: 120,
+      tradeDate: '2026-10-07',
+    });
     expect(fetchPage).toHaveBeenCalledTimes(1);
   });
 });

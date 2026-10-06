@@ -14,7 +14,9 @@ async function main() {
   const service = new MarketDataService(prisma as unknown as PrismaService);
 
   const result = await service.refreshPrices();
-  console.log(`Updated ${result.updated} securities. Ignored ${result.skippedUnrecognized} unrecognized tickers.`);
+  console.log(
+    `Updated ${result.updated} securities. Ignored ${result.skippedUnrecognized} unrecognized tickers. NGX trade date ${result.tradeDate}.`,
+  );
 
   await prisma.$disconnect();
 }
