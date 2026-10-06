@@ -5,6 +5,23 @@ import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { GoogleLinkService } from '../users/google-link.service';
 
+type StoredUser = NonNullable<Awaited<ReturnType<UsersService['findByEmail']>>>;
+
+// A complete stored user, so mocks return what UsersService really does.
+const storedUser = (overrides: Partial<StoredUser> = {}): StoredUser => ({
+  id: 'user_1',
+  email: 'seyin@example.com',
+  username: 'seyin',
+  name: 'Seyin Alao',
+  bio: null,
+  avatarUrl: null,
+  createdAt: new Date(),
+  passwordHash: null,
+  googleId: null,
+  sessionVersion: 0,
+  ...overrides,
+});
+
 describe('AuthService', () => {
   let authService: AuthService;
   let usersService: jest.Mocked<Pick<UsersService, 'findByEmail' | 'findByUsername' | 'create' | 'toSafeUser'>>;
@@ -61,7 +78,7 @@ describe('AuthService', () => {
     });
 
     it('rejects a duplicate email before touching the username check', async () => {
-      usersService.findByEmail.mockResolvedValue({ id: 'existing' } as any);
+      usersService.findByEmail.mockResolvedValue(storedUser({ id: 'existing' }));
       usersService.findByUsername.mockResolvedValue(null);
 
       await expect(
@@ -76,7 +93,7 @@ describe('AuthService', () => {
 
     it('rejects a duplicate username', async () => {
       usersService.findByEmail.mockResolvedValue(null);
-      usersService.findByUsername.mockResolvedValue({ id: 'existing' } as any);
+      usersService.findByUsername.mockResolvedValue(storedUser({ id: 'existing' }));
 
       await expect(
         authService.register({
@@ -100,16 +117,7 @@ describe('AuthService', () => {
 
     it('rejects a login with the wrong password', async () => {
       const realHash = await bcrypt.hash('the-real-password', 10);
-      usersService.findByEmail.mockResolvedValue({
-        id: 'user_1',
-        email: 'seyin@example.com',
-        username: 'seyin',
-        passwordHash: realHash,
-        name: 'Seyin Alao',
-        bio: null,
-        avatarUrl: null,
-        createdAt: new Date(),
-      } as any);
+      usersService.findByEmail.mockResolvedValue(storedUser({ passwordHash: realHash }));
 
       await expect(
         authService.login({ email: 'seyin@example.com', password: 'a-guess' }),
@@ -118,18 +126,8 @@ describe('AuthService', () => {
 
     it('issues a token for the correct password and never leaks the hash', async () => {
       const realHash = await bcrypt.hash('the-real-password', 10);
-      const rawUser = {
-        id: 'user_1',
-        email: 'seyin@example.com',
-        username: 'seyin',
-        passwordHash: realHash,
-        name: 'Seyin Alao',
-        bio: null,
-        avatarUrl: null,
-        createdAt: new Date(),
-        sessionVersion: 3,
-      };
-      usersService.findByEmail.mockResolvedValue(rawUser as any);
+      const rawUser = storedUser({ passwordHash: realHash, sessionVersion: 3 });
+      usersService.findByEmail.mockResolvedValue(rawUser);
       usersService.toSafeUser.mockReturnValue({
         id: rawUser.id,
         email: rawUser.email,
