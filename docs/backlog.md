@@ -18,7 +18,9 @@ Agreed 5 October 2026 during the pre-launch audit. Each step is its own PR, merg
 
 ### Go-live items
 
-- **NGX's permission for price data** (ADR 012). NGX's Terms & Conditions forbid automated data collection without its express written consent. Ask NGX for written consent, or license the data (for example X-DataPortal), before the public stage of the rollout. Owner: Seyin.
+- **NGX's permission for price data** (ADR 012). NGX's Terms & Conditions forbid automated data collection without its express written consent. Decided 6 October 2026: Seyin asks NGX in writing (non-commercial, one request per weekday) and accepts the risk until it answers, on the four conditions in ADR 012. Before the public stage: NGX's written consent, or that acceptance with every condition met. Owner: Seyin.
+- **"Source: NGX, prices as of <date>"** visible on the site (the Ledger, a thesis page), from the newest price row. A condition of the NGX risk acceptance, so it ships before the public stage.
+- **Retire companies NGX no longer lists.** STACO (Staco Insurance Plc) is seeded but has no entry in NGX's feed (absent on 27 September, 2 and 6 October), which looks like a delisting (no NGX notice checked yet). It can never get a price, so publishing on it always fails. `Security` has no "active" flag yet: add one (a migration, defaulting to active), have a securities sync (not built yet: today only the seed adds companies) mark companies missing from the feed inactive (never delete: theses point at them), and leave inactive companies out of the company search, while existing theses on them still show.
 
 - **Reset the Neon `neondb_owner` password** and update every environment's connection strings. The current one was shared outside the project during setup. At the same time, give the API and the jobs their own least-privilege database roles.
 - **Publish the Google OAuth consent screen**, so any Google account can sign in, not only listed test users.
@@ -36,7 +38,6 @@ Agreed 5 October 2026 during the pre-launch audit. Each step is its own PR, merg
 
 - **Update `actions/upload-artifact` in the private jobs repo** (low priority). The backup uses v4, and every run warns that it runs on Node 20 and is being forced onto Node 24. The latest release is v7.0.1 (April 2026). Read the v5-v7 release notes for breaking changes, update the version, then confirm with one manual backup run that the artifact still uploads (its size, the 90-day retention, compression off). Do it sooner if the warning becomes an error.
 
-- **"Source: NGX, prices as of <date>"** visible on the site (the Ledger, a thesis page), from the newest price row.
 - **An alert when prices are stale:** when the newest price is more than 2 days old (counting weekdays), email or flag it, before the 7-day publishing limit is near (ADR 009).
 - **Remove Puppeteer** once NGX's JSON source has run cleanly for a week (ADR 012, "Follow-ups"). Kept until then for Plan B.
 
