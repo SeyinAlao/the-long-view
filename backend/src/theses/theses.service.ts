@@ -1,4 +1,10 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SecuritiesService } from '../securities/securities.service';
 import { PUBLIC_SECURITY_FIELDS } from '../securities/public-security-fields';
@@ -14,6 +20,8 @@ import { UpdateThesisDto } from './dto/update-thesis.dto';
 // and NGX's longest public-holiday closures, while still noticing within a
 // week if the daily price job has stopped working.
 const MAX_REFERENCE_PRICE_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+const STILL_DRAFT = { status: 'DRAFT' } as const;
 
 const THESIS_INCLUDE = {
   metrics: true,
@@ -72,33 +80,40 @@ export class ThesesService {
     // Resolved before anything below is written or deleted: an unknown
     // ticker must fail the whole save with a 404, not fail halfway
     // through with this draft's metrics already deleted.
-    const securityId = dto.ticker ? (await this.securitiesService.findByTicker(dto.ticker)).id : undefined;
+    const securityId = dto.ticker
+      ? (await this.securitiesService.findByTicker(dto.ticker)).id
+      : undefined;
 
     // Metrics are a full replace, not a merge — simplest correct
     // behavior for a short list edited through a form, and it avoids
     // any ambiguity about which existing row a partial update refers to.
-    if (dto.metrics) {
-      await this.prisma.thesisMetric.deleteMany({ where: { thesisId: id } });
-    }
-
-    return this.prisma.thesis.update({
-      where: { id },
-      data: {
-        securityId,
-        targetPrice: dto.targetPrice,
-        conviction: dto.conviction,
-        horizonDays: dto.horizonDays,
-        statement: dto.statement,
-        bullCase: dto.bullCase,
-        baseCase: dto.baseCase,
-        bearCase: dto.bearCase,
-        catalysts: dto.catalysts,
-        risks: dto.risks,
-        invalidationCondition: dto.invalidationCondition,
-        metrics: dto.metrics?.length ? { create: dto.metrics } : undefined,
-      },
-      include: THESIS_INCLUDE,
-    });
+    // One transaction, so if the thesis was published meanwhile and the
+    // update below finds no draft, the metrics are left as they were.
+    return this.whileStillDraft(() =>
+      this.prisma.$transaction(async (tx) => {
+        if (dto.metrics) {
+          await tx.thesisMetric.deleteMany({ where: { thesisId: id } });
+        }
+        return tx.thesis.update({
+          where: { id, ...STILL_DRAFT },
+          data: {
+            securityId,
+            targetPrice: dto.targetPrice,
+            conviction: dto.conviction,
+            horizonDays: dto.horizonDays,
+            statement: dto.statement,
+            bullCase: dto.bullCase,
+            baseCase: dto.baseCase,
+            bearCase: dto.bearCase,
+            catalysts: dto.catalysts,
+            risks: dto.risks,
+            invalidationCondition: dto.invalidationCondition,
+            metrics: dto.metrics?.length ? { create: dto.metrics } : undefined,
+          },
+          include: THESIS_INCLUDE,
+        });
+      }),
+    );
   }
 
   async publish(id: string, authorId: string) {
@@ -113,7 +128,10 @@ export class ThesesService {
       orderBy: { recordedAt: 'desc' },
     });
 
-    if (!latestPrice || latestPrice.recordedAt.getTime() < Date.now() - MAX_REFERENCE_PRICE_AGE_MS) {
+    if (
+      !latestPrice ||
+      latestPrice.recordedAt.getTime() < Date.now() - MAX_REFERENCE_PRICE_AGE_MS
+    ) {
       throw new ConflictException(
         "This company doesn't have a current market price yet, so the thesis can't be published - " +
           'its reference price would be wrong, and it can never change once published. ' +
@@ -121,23 +139,43 @@ export class ThesesService {
       );
     }
 
-    return this.prisma.thesis.update({
-      where: { id },
-      data: {
-        status: 'ACTIVE',
-        publishedAt: new Date(),
-        // The whole point - see docs/decisions/004. Never taken from
-        // user input: the latest real market price at this moment.
-        referencePrice: latestPrice.price,
-      },
-      include: THESIS_INCLUDE,
-    });
+    // Conditioned on still being a draft, so a second publish racing this
+    // one can never overwrite the locked reference price.
+    return this.whileStillDraft(() =>
+      this.prisma.thesis.update({
+        where: { id, ...STILL_DRAFT },
+        data: {
+          status: 'ACTIVE',
+          publishedAt: new Date(),
+          // The whole point - see docs/decisions/004. Never taken from
+          // user input: the latest real market price at this moment.
+          referencePrice: latestPrice.price,
+        },
+        include: THESIS_INCLUDE,
+      }),
+    );
   }
 
   async discardDraft(id: string, authorId: string) {
     await this.getOwnedDraftOrThrow(id, authorId);
-    await this.prisma.thesis.delete({ where: { id } });
+    await this.whileStillDraft(() => this.prisma.thesis.delete({ where: { id, ...STILL_DRAFT } }));
     return { success: true };
+  }
+
+  // getOwnedDraftOrThrow is a separate query, so a publish can land
+  // between that check and the write (audit F-11). Every write to a draft
+  // is therefore conditioned on STILL_DRAFT too; if the thesis was
+  // published meanwhile, the write matches nothing and Prisma throws
+  // P2025, which is the same refusal the check gives.
+  private async whileStillDraft<T>(write: () => Promise<T>): Promise<T> {
+    try {
+      return await write();
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        throw new ForbiddenException('Published theses cannot be edited');
+      }
+      throw error;
+    }
   }
 
   async findPublished(options: { ticker?: string; skip?: number; take?: number }) {

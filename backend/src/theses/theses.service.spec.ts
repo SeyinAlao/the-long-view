@@ -10,6 +10,7 @@ describe('ThesesService', () => {
     security: { findUnique: jest.Mock };
     price: { findFirst: jest.Mock };
     thesisMetric: { deleteMany: jest.Mock };
+    $transaction: jest.Mock;
   };
   let securities: { findByTicker: jest.Mock };
 
@@ -26,6 +27,8 @@ describe('ThesesService', () => {
       security: { findUnique: jest.fn() },
       price: { findFirst: jest.fn() },
       thesisMetric: { deleteMany: jest.fn() },
+      // Runs the callback against this same mock, as one transaction would.
+      $transaction: jest.fn((write: (tx: unknown) => unknown) => write(prisma)),
     };
     securities = { findByTicker: jest.fn() };
     service = new ThesesService(prisma as unknown as PrismaService, securities as unknown as SecuritiesService);
