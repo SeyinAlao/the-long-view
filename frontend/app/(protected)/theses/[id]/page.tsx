@@ -3,6 +3,7 @@ import { getCurrentUserServer } from '@/lib/server-auth';
 import { getThesisServer } from '@/lib/server-theses';
 import { CounterThesesSection } from '@/components/theses/counter-theses-section';
 import { ThesisOutcomeCard } from '@/components/theses/thesis-outcome-card';
+import { DISCLAIMER } from '@/lib/legal';
 
 // Plain helper, not a component — Date.now() here doesn't trip React's
 // purity rule the way calling it directly inside a component body
@@ -54,6 +55,8 @@ export default async function ThesisDetailPage({ params }: { params: Promise<{ i
         {thesis.security.ticker} · by @{thesis.author.username}
       </p>
       <h1 className="font-display mt-2 text-3xl leading-tight sm:text-4xl">{thesis.security.companyName}</h1>
+      {/* What every thesis is (ADR 014). */}
+      <p className="mt-2 max-w-prose text-xs leading-relaxed text-muted">{DISCLAIMER}</p>
       <p className="mt-6 max-w-prose text-base leading-relaxed text-ink/90">{thesis.statement}</p>
 
       <div className="mt-8 grid grid-cols-2 gap-4 border-y border-ink/15 py-6 sm:grid-cols-4">
