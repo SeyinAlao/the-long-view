@@ -5,7 +5,7 @@
 // Times are always read in Lagos time, never the machine's own zone.
 const LAGOS = 'Africa/Lagos';
 const OPEN_MINUTES = 9 * 60; // 9:00am
-const SAFE_AFTER_MINUTES = 16 * 60 + 30; // 4:30pm: 4:00pm close + page lag
+export const SAFE_AFTER_MINUTES = 16 * 60 + 30; // 4:30pm: 4:00pm close + page lag
 const WEEKEND = new Set(['Sat', 'Sun']);
 
 const lagosParts = new Intl.DateTimeFormat('en-US', {
@@ -23,10 +23,16 @@ const lagosClock = new Intl.DateTimeFormat('en-US', {
   hour12: true,
 });
 
+// Minutes since midnight, Lagos time.
+export function lagosMinutesOfDay(now: Date): number {
+  const parts = Object.fromEntries(lagosParts.formatToParts(now).map((p) => [p.type, p.value]));
+  return Number(parts.hour) * 60 + Number(parts.minute);
+}
+
 export function isInsideTradingWindow(now: Date): boolean {
   const parts = Object.fromEntries(lagosParts.formatToParts(now).map((p) => [p.type, p.value]));
   if (WEEKEND.has(parts.weekday)) return false;
-  const minutes = Number(parts.hour) * 60 + Number(parts.minute);
+  const minutes = lagosMinutesOfDay(now);
   return minutes >= OPEN_MINUTES && minutes < SAFE_AFTER_MINUTES;
 }
 

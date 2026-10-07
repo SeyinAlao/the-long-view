@@ -38,7 +38,9 @@ describe('MarketDataService.refreshPrices during NGX trading hours', () => {
   });
 
   it.each([
-    ['one minute before the open', '2026-10-07T08:59:00'],
+    // The next morning, so the feed's 7 October closes are yesterday's: a
+    // row dated today before 4:30pm is refused by trade-date-guard.ts.
+    ['one minute before the open', '2026-10-08T08:59:00'],
     ['exactly 4:30pm', '2026-10-07T16:30:00'],
     ['just after 4:30pm', '2026-10-07T16:31:00'],
     ['on a Saturday during weekday trading hours', '2026-10-10T11:15:00'],
