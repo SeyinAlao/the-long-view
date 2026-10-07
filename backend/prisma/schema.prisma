@@ -57,6 +57,10 @@ model User {
   // Every session token carries the value this had when it was issued;
   // raising it (logout) ends every session at once. See ADR 002.
   sessionVersion Int    @default(0)
+  // The Terms version this person accepted, and when. Null: not yet
+  // accepted (everyone before the agreement checkpoint).
+  termsVersion    String?
+  termsAcceptedAt DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -107,10 +111,16 @@ model Price {
   securityId String
   price      Decimal  @db.Decimal(12, 2)
   recordedAt DateTime @default(now())
+  // The trading day NGX reports for this close. Null on rows saved before
+  // it was recorded: their day isn't known for certain, so it isn't guessed.
+  tradeDate  DateTime? @db.Date
 
   security Security @relation(fields: [securityId], references: [id])
 
   @@index([securityId, recordedAt])
+  // One close per company per trading day. Postgres treats nulls as
+  // distinct, so the older rows without a date never clash.
+  @@unique([securityId, tradeDate])
 }
 
 model Thesis {
