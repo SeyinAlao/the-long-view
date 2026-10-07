@@ -15,7 +15,7 @@ async function main() {
 
   const result = await service.refreshPrices();
   console.log(
-    `Updated ${result.updated} securities. Ignored ${result.skippedUnrecognized} unrecognized tickers. NGX trade date ${result.tradeDate}.`,
+    `Updated ${result.updated} securities. ${result.alreadyStored} already stored for their trade date. Ignored ${result.skippedUnrecognized} unrecognized tickers. NGX trade date ${result.tradeDate}.`,
   );
 
   await prisma.$disconnect();

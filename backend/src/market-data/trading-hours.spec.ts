@@ -47,6 +47,7 @@ describe('MarketDataService.refreshPrices during NGX trading hours', () => {
 
     await expect(service.refreshPrices(lagos(time))).resolves.toEqual({
       updated: 0,
+      alreadyStored: 0,
       skippedUnrecognized: 120,
       tradeDate: '2026-10-07',
     });
