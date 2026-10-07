@@ -63,13 +63,15 @@ that day.
   also say NGX content may not be used without its prior written
   permission.
   - This applied equally to the old page scraper.
-  - One request a day keeps the load minimal, but it doesn't make the
+  - One scheduled request per weekday (plus occasional manual test runs
+    during development) keeps the load minimal, but it doesn't make the
     access permitted.
   - Neither host serves a `robots.txt` (404 on both, 6 October). For
     `ngxgroup.com`, which blocks plain requests, that 404 may come from
     its bot protection rather than proving none exists.
   - **Decided 6 October 2026 (Seyin):** ask NGX in writing for
-    permission (non-commercial use, one request per weekday). Until NGX
+    permission (non-commercial use, one request per weekday on a
+    schedule, plus occasional manual test runs during development). Until NGX
     answers, accept the risk in writing, on these conditions:
     - one request per run, no retry
     - an honest User-Agent naming the app

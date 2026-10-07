@@ -192,11 +192,12 @@ FRONTEND_URL / CORS_ORIGIN / GOOGLE_CALLBACK_URL and Google's OAuth URIs.
    auth PRs (#33 citext + session revocation, #34/#35 Google account
    linking, #37 OAuth `state` + return path), G3 rate limiting + F-08
    security logging (#38, ADR 010; enforced and verified on staging 6
-   October). Order from here (details in docs/backlog.md):
-   1. G4 security headers, G5 edge caching for Ledger
-      and Leaderboard, G2 uptime monitor on `/health/live` (it must call
-      `/health` or `/health/live`: every other path needs the edge key),
-      G6 a rehearsed rollback on Vercel and Render - in that order.
+   October), G4 security headers (#40, ADR 011; enforced, click-through
+   done), G5 edge caching for the Ledger and Leaderboard (#46, ADR 013;
+   verified live 7 October). Order from here (details in docs/backlog.md):
+   1. G2 uptime monitor on `/health/live` (it must call `/health` or
+      `/health/live`: every other path needs the edge key), then G6 a
+      rehearsed rollback on Vercel and Render.
    2. **12 October:** one week after #38, check Vercel's proxy usage
       (docs/deployment.md, "The edge key", last paragraph).
    3. Remaining audit items: staging ramp (policies cited, abort
