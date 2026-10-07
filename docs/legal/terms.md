@@ -24,6 +24,11 @@ counter-thesis.
 We don't sell anything, give investment advice, manage money, or buy
 or sell securities for anyone.
 
+The Long View is non-commercial: no advertising, fees, subscriptions,
+sponsorship or affiliate links. [Reviewer: this stays true until a
+qualified person has reviewed the site's position under the
+Investments and Securities Act 2025.]
+
 ## 2. Your account
 
 - You must be at least 18 years old. [Reviewer: confirm the age.]
@@ -62,9 +67,9 @@ recommendation, and is not investment advice.**
 - **Once you publish a thesis or a counter-thesis, you can't edit or
   delete it.** That is the point of the site: a record that can't be
   quietly rewritten. You confirm this each time you publish.
-- We may still remove content under section 7, or when the law
-  requires it. If you close your account, see the Privacy Policy for
-  what happens to your published theses.
+- This binds authors, not the operator: we may still hide content
+  under section 7. If you close your account, see the Privacy Policy
+  for what happens to your published theses.
 
 ## 6. Rules
 
@@ -83,9 +88,22 @@ You must not use The Long View to:
 
 ## 7. Removing content and accounts
 
-We may remove content, or suspend or close an account, that breaks
-these terms or the law, or when a lawful order requires it. Where we
-can, we'll tell you why. To report content, write to [contact email].
+We may hide a thesis or counter-thesis, or suspend or close an
+account, when:
+
+- a lawful order requires it;
+- the content is clearly unlawful (for example defamatory, or someone
+  else's private information); or
+- it breaks section 6, including after a well-founded report.
+
+Hidden content is not deleted: we keep a record of it and of why it
+was hidden. Its page then says it was removed by the operator, and on
+what date and general ground, without showing the text. It no longer
+appears on the Ledger or counts on the Leaderboard. Where the law
+allows, we'll email the author to say what was hidden and why.
+
+To report content, write to [contact email], with the link and the
+reason.
 
 ## 8. Prices and their source
 
