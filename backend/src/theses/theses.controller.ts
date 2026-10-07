@@ -19,6 +19,7 @@ import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { SafeUser } from '../users/users.service';
 import { RateLimit } from '../security/rate-limit.decorator';
+import { ListThesesQueryDto } from './dto/list-theses-query.dto';
 
 @Controller('theses')
 export class ThesesController {
@@ -69,16 +70,8 @@ export class ThesesController {
   }
 
   @Get()
-  findPublished(
-    @Query('ticker') ticker?: string,
-    @Query('skip') skip?: string,
-    @Query('take') take?: string,
-  ) {
-    return this.thesesService.findPublished({
-      ticker,
-      skip: skip ? Number(skip) : undefined,
-      take: take ? Number(take) : undefined,
-    });
+  findPublished(@Query() query: ListThesesQueryDto) {
+    return this.thesesService.findPublished(query);
   }
 
   @UseGuards(OptionalJwtAuthGuard)
