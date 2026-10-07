@@ -1,3 +1,4 @@
+import { Prisma } from '../../generated/prisma/client';
 import { MarketDataService } from './market-data.service';
 import type { FeedResponse } from './ngx-equities-source';
 import type { PrismaService } from '../prisma/prisma.service';
@@ -22,6 +23,8 @@ function setUp() {
       update: jest.fn().mockResolvedValue({}),
     },
     price: { create: jest.fn().mockResolvedValue({}) },
+    // An array transaction: every write in it succeeds or none does.
+    $transaction: jest.fn((writes: Promise<unknown>[]) => Promise.all(writes)),
   };
   return { prisma, service: new MarketDataService(prisma as unknown as PrismaService) };
 }
@@ -54,7 +57,30 @@ describe('MarketDataService.refreshPrices', () => {
       where: { ticker: 'MTNN' },
       data: { previousPrice: '842.00', currentPrice: 847 },
     });
-    expect(prisma.price.create).toHaveBeenCalledWith({ data: { securityId: 'sec_1', price: 847 } });
-    expect(result).toEqual({ updated: 1, skippedUnrecognized: 120, tradeDate: '2026-10-07' });
+    expect(prisma.price.create).toHaveBeenCalledWith({
+      data: { securityId: 'sec_1', price: 847, tradeDate: new Date('2026-10-07T00:00:00Z') },
+    });
+    expect(result).toEqual({ updated: 1, alreadyStored: 0, skippedUnrecognized: 120, tradeDate: '2026-10-07' });
+  });
+
+  it('leaves a company alone when its close for that trading day is already stored', async () => {
+    const { prisma, service } = setUp();
+    jest.spyOn(service, 'fetchFeed').mockResolvedValue(feed(manyRows([row('MTNN', 847)])));
+    // The unique index on (securityId, tradeDate) refuses the second row.
+    prisma.price.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Unique constraint failed', { code: 'P2002', clientVersion: 'test' }),
+    );
+
+    const result = await service.refreshPrices(AFTER_CLOSE);
+
+    expect(result).toEqual({ updated: 0, alreadyStored: 1, skippedUnrecognized: 120, tradeDate: '2026-10-07' });
+  });
+
+  it('stops the run on any other database error', async () => {
+    const { prisma, service } = setUp();
+    jest.spyOn(service, 'fetchFeed').mockResolvedValue(feed(manyRows([row('MTNN', 847)])));
+    prisma.price.create.mockRejectedValue(new Error('connection lost'));
+
+    await expect(service.refreshPrices(AFTER_CLOSE)).rejects.toThrow('connection lost');
   });
 });

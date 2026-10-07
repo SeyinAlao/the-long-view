@@ -44,7 +44,7 @@ export function assessFeed(response: FeedResponse, now: Date): AssessedFeed {
     throw refuse(`only ${parsed.prices.length} usable entries (expected ${MIN_EXPECTED}+)`);
   }
   const newest = tradeDates[0];
-  if (daysBetween(newest, today) > MAX_TRADE_DATE_AGE_DAYS) {
+  if (calendarDaysBetween(newest, today) > MAX_TRADE_DATE_AGE_DAYS) {
     throw refuse(`newest trade date ${newest} is more than ${MAX_TRADE_DATE_AGE_DAYS} days before ${today} (Lagos)`);
   }
   return { prices: parsed.prices, tradeDate: newest, diagnostics };
@@ -62,7 +62,8 @@ function lagosTime(now: Date): string {
   return lagosClock.format(now);
 }
 
-function daysBetween(earlier: string, later: string): number {
+// Whole calendar days from one YYYY-MM-DD to another.
+export function calendarDaysBetween(earlier: string, later: string): number {
   return (Date.parse(`${later}T00:00:00Z`) - Date.parse(`${earlier}T00:00:00Z`)) / 86_400_000;
 }
 

@@ -114,10 +114,9 @@ describe('ThesesService', () => {
 
       await service.publish('thesis_1', 'author_1');
 
-      expect(prisma.price.findFirst).toHaveBeenCalledWith({
-        where: { securityId: 'sec_1' },
-        orderBy: { recordedAt: 'desc' },
-      });
+      expect(prisma.price.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ securityId: 'sec_1' }) }),
+      );
       const updateArg = prisma.thesis.update.mock.calls[0][0];
       expect(updateArg.data.referencePrice).toBe('742.50');
       expect(updateArg.data.status).toBe('ACTIVE');
@@ -134,6 +133,18 @@ describe('ThesesService', () => {
     it('refuses to publish when the latest real price is more than 7 days old', async () => {
       prisma.thesis.findUnique.mockResolvedValue(draftThesis);
       prisma.price.findFirst.mockResolvedValue({ price: '742.50', recordedAt: daysAgo(8) });
+
+      await expect(service.publish('thesis_1', 'author_1')).rejects.toThrow(ConflictException);
+      expect(prisma.thesis.update).not.toHaveBeenCalled();
+    });
+
+    it("measures age on NGX's trade date: a close from 10 trading days ago saved today is refused", async () => {
+      // A frozen feed: the row was saved just now, but NGX dates it 10 days back.
+      const tenDaysAgo = new Date(`${daysAgo(10).toISOString().slice(0, 10)}T00:00:00Z`);
+      prisma.thesis.findUnique.mockResolvedValue(draftThesis);
+      prisma.price.findFirst.mockImplementation(({ where }: { where: { tradeDate: unknown } }) =>
+        Promise.resolve(where.tradeDate === null ? null : { price: '742.50', tradeDate: tenDaysAgo, recordedAt: new Date() }),
+      );
 
       await expect(service.publish('thesis_1', 'author_1')).rejects.toThrow(ConflictException);
       expect(prisma.thesis.update).not.toHaveBeenCalled();

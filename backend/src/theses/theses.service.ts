@@ -10,17 +10,12 @@ import { SecuritiesService } from '../securities/securities.service';
 import { PUBLIC_SECURITY_FIELDS } from '../securities/public-security-fields';
 import { CreateThesisDto } from './dto/create-thesis.dto';
 import { UpdateThesisDto } from './dto/update-thesis.dto';
+import { isRecentEnough, latestPrice as latestPriceFor } from '../market-data/price-history';
 
 // select, not include, for author — this is the one place a thesis
 // response touches the User model, and it must never be able to leak
 // passwordHash or googleId by accident the way a bare `include` could
 // if the User model ever grows a new field.
-// A thesis is graded against its reference price forever, so that price has
-// to be a real market price, and a recent one. Seven days covers weekends
-// and NGX's longest public-holiday closures, while still noticing within a
-// week if the daily price job has stopped working.
-const MAX_REFERENCE_PRICE_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-
 const STILL_DRAFT = { status: 'DRAFT' } as const;
 
 const THESIS_INCLUDE = {
@@ -123,15 +118,11 @@ export class ThesesService {
     // the daily price job records. Security.currentPrice can't be trusted
     // for this on its own: the seed fills it with a placeholder, and that
     // placeholder would be locked into a published thesis forever.
-    const latestPrice = await this.prisma.price.findFirst({
-      where: { securityId: thesis.securityId },
-      orderBy: { recordedAt: 'desc' },
-    });
+    // Its age is measured on NGX's trading day where the row has one, so
+    // a frozen feed can't make an old close look fresh (price-history.ts).
+    const latestPrice = await latestPriceFor(this.prisma, thesis.securityId);
 
-    if (
-      !latestPrice ||
-      latestPrice.recordedAt.getTime() < Date.now() - MAX_REFERENCE_PRICE_AGE_MS
-    ) {
+    if (!latestPrice || !isRecentEnough(latestPrice, new Date())) {
       throw new ConflictException(
         "This company doesn't have a current market price yet, so the thesis can't be published - " +
           'its reference price would be wrong, and it can never change once published. ' +
