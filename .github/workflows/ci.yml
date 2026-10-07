@@ -29,6 +29,11 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run build
+      # A second build against an API that accepts connections and never
+      # answers (Render waking, at its worst). Fails unless both cached
+      # pages fall back within Next's 60 s page limit (ADR 013).
+      - name: Build against a hanging API
+        run: npm run build:hanging-api
 
   backend:
     name: Backend (lint, typecheck, test, build)
