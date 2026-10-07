@@ -134,7 +134,14 @@ You can also complain to the Nigeria Data Protection Commission
 
 ## 10. Children
 
-The Long View is not for people under [18].
+You must be **18 or older** to use an account on The Long View. You
+confirm this yourself when you sign up or accept these terms; we don't
+verify ages. If we learn an account belongs to someone under 18, we
+close it and delete its personal data.
+
+> Lawyer: is a self-declaration enough? What does the NDPA require for
+> children's data (for example consent from a parent and an appropriate
+> way to verify age)? See open question 8.
 
 ## 11. Changes
 
@@ -159,6 +166,10 @@ to accept it at your next sign-in if the change affects you.
    Commission's approval under the GAID.
 6. Retention: 90 days for security logs and backups, acceptable?
 7. Vercel Web Analytics: is a notice enough, or is consent needed?
+8. Age: is a self-declared "18 or older" checkbox enough, and what does
+   the NDPA require for children's data (parental consent, verifying
+   age)? Is closing an under-18 account and deleting its data the right
+   response?
 
 ## Sources (read 7 October 2026)
 

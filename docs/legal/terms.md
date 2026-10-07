@@ -31,7 +31,10 @@ Investments and Securities Act 2025.]
 
 ## 2. Your account
 
-- You must be at least 18 years old. [Reviewer: confirm the age.]
+- You must be at least 18 years old. You confirm this yourself when you
+  create an account or accept these terms; we don't verify ages.
+  [Lawyer: is a self-declaration enough, and what does the NDPA require
+  for children?]
 - Give a real email address and keep your password to yourself. You
   are responsible for what is published from your account.
 - You may sign in with Google. If you do, Google's own terms also apply
