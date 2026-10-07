@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
+import * as bcrypt from 'bcryptjs';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 
@@ -35,6 +36,40 @@ describe('Auth (e2e)', () => {
       .post('/auth/register')
       .send({ email: 'short@example.com', username: 'shortpw', password: '123', name: 'Short' })
       .expect(400);
+  });
+
+  // bcrypt ignores every byte past the 72nd (audit F-14), so a longer
+  // password would be accepted but only partly checked.
+  describe('password length in bytes', () => {
+    const register = (password: string, username: string) =>
+      request(app.getHttpServer())
+        .post('/auth/register')
+        .send({ email: `${username}@example.com`, username, password, name: 'Bytes' });
+
+    it('accepts exactly 72 bytes', async () => {
+      await register('a'.repeat(72), 'bytes72').expect(201);
+    });
+
+    it('refuses 73 bytes, saying why', async () => {
+      const res = await register('a'.repeat(73), 'bytes73').expect(400);
+      expect(res.body.message).toContainEqual(expect.stringContaining('at most 72 bytes'));
+    });
+
+    it('counts bytes, not characters: 37 accented letters are 74 bytes', async () => {
+      const password = 'é'.repeat(37);
+      expect(password).toHaveLength(37);
+      await register(password, 'bytesutf8').expect(400);
+    });
+
+    it('still signs in an existing account whose password is longer than 72 bytes', async () => {
+      const long = 'b'.repeat(80);
+      const passwordHash = await bcrypt.hash(long, 10);
+      await prisma.user.create({ data: { email: 'long@example.com', username: 'longpw', name: 'Long', passwordHash } });
+      await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: 'long@example.com', password: long })
+        .expect(200);
+    });
   });
 
   it('rejects registration with an invalid email', async () => {
