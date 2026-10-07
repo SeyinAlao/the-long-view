@@ -1,4 +1,5 @@
 import { test, expect } from '../support/fixtures';
+import { publishFromForm } from '../support/thesis-form';
 import { addPrice } from '../support/db';
 import { expectNoAxeViolations } from '../support/a11y';
 import { newAccount, signUpWithApi } from '../support/accounts';
@@ -17,7 +18,7 @@ test.describe('WCAG 2.2 AA (axe-core)', () => {
   });
 
   test('public pages, signed out', async ({ page }) => {
-    for (const path of ['/', '/feed', '/leaderboard', '/login', '/signup', `/theses/${publishedId}`]) {
+    for (const path of ['/', '/feed', '/leaderboard', '/login', '/signup', '/terms', '/privacy', `/theses/${publishedId}`]) {
       await page.goto(path);
       await expect(page.locator('main[aria-busy="true"]')).toHaveCount(0);
       await expectNoAxeViolations(page, path);
@@ -44,7 +45,7 @@ test.describe('WCAG 2.2 AA (axe-core)', () => {
     }
 
     await page.goto('/theses/new');
-    await page.getByRole('button', { name: 'Publish thesis' }).click();
+    await publishFromForm(page);
     await expect(page.getByRole('alert').filter({ hasText: /\w/ }).first()).toBeVisible();
     await expectNoAxeViolations(page, 'empty thesis form');
 

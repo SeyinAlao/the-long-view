@@ -16,7 +16,7 @@ export async function createThesis(
   expect(created.status(), await created.text()).toBe(201);
   const { id } = (await created.json()) as { id: string };
   if (publish) {
-    const published = await api.post(`/api/theses/${id}/publish`);
+    const published = await api.post(`/api/theses/${id}/publish`, { data: { confirmed: true } });
     expect(published.ok(), await published.text()).toBe(true);
   }
   return id;

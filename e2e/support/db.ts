@@ -39,6 +39,15 @@ export async function addPrice(ticker: string, price: number, ageDays = 0): Prom
   if (rowCount !== 1) throw new Error(`No seeded security with ticker ${ticker}`);
 }
 
+// As if the account predates the Terms checkpoint, or the Terms have
+// changed since it accepted (ADR 014).
+export async function withdrawTermsAcceptance(username: string): Promise<void> {
+  const { rowCount } = await pool.query('UPDATE "User" SET "termsVersion" = NULL, "termsAcceptedAt" = NULL WHERE username = $1', [
+    username,
+  ]);
+  if (rowCount !== 1) throw new Error(`No user ${username}`);
+}
+
 export async function closeDatabase(): Promise<void> {
   await pool.end();
 }
