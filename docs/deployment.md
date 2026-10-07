@@ -54,6 +54,14 @@ The age **public** key is written in the backup workflow itself; it is not a sec
 
 Failure emails for scheduled runs go to the GitHub user who created the workflow, or whoever last changed its `cron` line or re-enabled it, with email turned on under Settings, then Notifications, then Actions.
 
+### Stale price alert
+
+The private repo's **"Stale price alert"** workflow runs each weekday at 8:47am Lagos. It reads only the newest price row (`npm run market-data:freshness`) and fails, so emails, once two weekday refreshes in a row are missing. Publishing stops 7 days after the last refresh (ADR 009), so this leaves several days to act. If it fires:
+
+1. Open the "Daily market jobs" runs. A failed run's log says why (an NGX refusal names its reason). No run at all means the schedule didn't fire.
+2. After 4:30pm Lagos on a weekday, run "Daily market jobs" by hand (Run workflow). Its "Updated" line should show about 146 securities and the day's NGX trade date.
+3. The next morning's alert run should pass.
+
 ## Restoring a backup
 
 The step-by-step PowerShell procedure, and `restore-check.sql` for the row counts, are in the private repo's README. Restoring was proven on 2 October 2026 (row counts matched the backup run's summary). The rules that matter:

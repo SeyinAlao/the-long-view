@@ -14,6 +14,7 @@
     "db:seed": "ts-node prisma/seed.ts",
     "market-data:refresh": "ts-node scripts/refresh-market-data.ts",
     "market-data:check": "ts-node scripts/check-ngx-feed.ts",
+    "market-data:freshness": "ts-node scripts/check-price-freshness.ts",
     "evaluate:pending": "ts-node scripts/evaluate-pending-theses.ts",
     "db:check-pooler": "ts-node scripts/check-pooler-serializable.ts"
   },

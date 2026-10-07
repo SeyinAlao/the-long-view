@@ -33,6 +33,13 @@ export function assessFeed(response: FeedResponse, now: Date): AssessedFeed {
   const refuse = (why: string) => new FeedRefusedError(`NGX prices refused - writing nothing: ${why}. ${diagnostics}`);
 
   if (response.status !== 200) throw refuse(`HTTP ${response.status}`);
+  // A renamed or dropped field shows up as most rows missing it. Named,
+  // so the failure email says what changed rather than just "0 usable".
+  const gone = Object.entries(parsed.missing).filter(([, rows]) => rows * 2 > parsed.rows);
+  if (gone.length > 0) {
+    const named = gone.map(([field, rows]) => `${field} (${rows} of ${parsed.rows} rows)`).join(', ');
+    throw refuse(`required fields missing from most rows: ${named}`);
+  }
   if (parsed.prices.length < MIN_EXPECTED) {
     throw refuse(`only ${parsed.prices.length} usable entries (expected ${MIN_EXPECTED}+)`);
   }
