@@ -253,6 +253,63 @@ From `backend/`, in PowerShell, with the PR's branch checked out (`git switch ch
 
 Rehearsed on 7 October 2026 on a local database built the way staging is (the first five migrations applied and recorded): status listed exactly the new migration; diff (a) printed no difference with exit code 0, and (b) exactly the three statements above with exit code 2; the three before-checks printed `(0 rows)`; deploy applied it; status was up to date, the ledger had six finished rows, and the checks showed the columns and index above.
 
+### Thesis hidden columns (`20261007180000_thesis_hidden`)
+
+One additive migration for the operator's takedown (Terms, section 7): `Thesis.hiddenAt` (timestamp) and `Thesis.hiddenReason` (text), both nullable, no default. Empty means not hidden. Nothing is backfilled or deleted.
+
+**Apply it to staging before merging the PR that adds it** (`chore/migration-thesis-hidden`). The new code's Prisma client reads these columns. The code running now is unaffected by the migrated database (the full backend e2e suite passed with the old schema's client against a migrated database, 7 October 2026).
+
+From `backend/`, in PowerShell, with the PR's branch checked out (`git switch chore/migration-thesis-hidden`).
+
+1. **Host check.** Load staging's **direct** URL into this window only:
+   ```
+   $env:DIRECT_URL = "<staging's direct connection string>"
+   $psql = "C:\Program Files\PostgreSQL\18\bin\psql.exe"
+   $u = [uri]$env:DIRECT_URL; "$($u.Host)  $($u.AbsolutePath)"
+   ```
+   It must print a host starting `ep-bold-sky-a5oday2y.`, with no `-pooler`, and `/neondb`. Anything else: stop.
+2. **Read-only status and ledger:**
+   ```
+   npx prisma migrate status
+   & $psql $env:DIRECT_URL -f prisma\checks\migration-ledger.sql
+   ```
+   Status must list exactly one migration not yet applied, `20261007180000_thesis_hidden`. The ledger must list the six before it, each with `finished_at`. Anything else: stop.
+3. **Read-only diffs** (the local shadow database, as before):
+   ```
+   & $psql "postgresql://postgres:<local password>@localhost:5432/postgres" -c "CREATE DATABASE the_long_view_shadow"   # "already exists" is fine
+   $env:SHADOW_DATABASE_URL = "postgresql://postgres:<local password>@localhost:5432/the_long_view_shadow"
+   $six = Join-Path $env:TEMP "tlv-first-six"
+   Remove-Item $six -Recurse -Force -ErrorAction SilentlyContinue
+   Copy-Item prisma\migrations $six -Recurse
+   Remove-Item (Join-Path $six "20261007180000_thesis_hidden") -Recurse
+
+   # a) Staging must match the first six exactly
+   npx prisma migrate diff --from-config-datasource --to-migrations $six --exit-code
+   "exit code: $LASTEXITCODE"
+
+   # b) What the new migration adds, as SQL
+   npx prisma migrate diff --from-config-datasource --to-migrations prisma\migrations --script --exit-code
+   "exit code: $LASTEXITCODE"
+
+   Remove-Item Env:\SHADOW_DATABASE_URL
+   ```
+   a) must print `No difference detected.` and `exit code: 0`. b) must print `exit code: 2` and exactly one statement: `ALTER TABLE "public"."Thesis" ADD COLUMN "hiddenAt" TIMESTAMP(3), ADD COLUMN "hiddenReason" TEXT;`. Anything else: stop, and keep the output (structure only).
+4. **Read-only check, before:** `& $psql $env:DIRECT_URL -f prisma\checks\thesis-hidden-columns.sql` prints `(0 rows)`.
+5. **Snapshot:** in the Neon console, create a branch from `staging`, for example `staging-before-thesis-hidden`. Every step from here writes.
+6. **Apply:** `npx prisma migrate deploy`. It prints `Applying migration 20261007180000_thesis_hidden`.
+7. **Verify:**
+   ```
+   npx prisma migrate status
+   & $psql $env:DIRECT_URL -f prisma\checks\migration-ledger.sql
+   & $psql $env:DIRECT_URL -f prisma\checks\thesis-hidden-columns.sql
+   & $psql $env:DIRECT_URL -f prisma\checks\hidden-theses.sql
+   ```
+   Status says `Database schema is up to date!`. The ledger lists seven, all finished. `hiddenAt` is `timestamp` and `hiddenReason` is `text`, both nullable with no default. `hidden-theses.sql` prints `(0 rows)`.
+8. **If step 6 failed:** nothing was applied (one transaction). Run `npx prisma migrate resolve --rolled-back 20261007180000_thesis_hidden`, keep the output, and stop.
+9. `Remove-Item Env:\DIRECT_URL`. Then the PR can merge. Delete the snapshot branch once the next scheduled market run has succeeded.
+
+Rehearsed on 7 October 2026 on a local database built the way staging will be (the first six migrations applied and recorded): status listed exactly the new migration; diff (a) printed no difference with exit code 0, and (b) exactly the statement above with exit code 2; the before-check printed `(0 rows)`; deploy applied it; status was up to date, the ledger had seven finished rows, and the checks showed the two columns and no hidden theses.
+
 ### Baselining: tables exist but the migration ledger is empty
 
 `prisma migrate status` listing **every** migration as not yet applied, on a database whose tables exist, means `_prisma_migrations` is empty. A Neon **schema-only branch** does this: it copies every table's structure and no rows, the ledger included (Neon docs: "Schema-only branches"). That is how `staging` was created. Never run `migrate deploy` on such a database before baselining: it would try to create tables that already exist.
