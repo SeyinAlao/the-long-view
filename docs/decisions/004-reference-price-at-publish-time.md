@@ -36,6 +36,16 @@ while still noticing within a week if the price job has stopped. A
 suspended stock, which has no fresh price, can't be published on -
 which is also correct: there's no live price to be graded against.
 
+**Amended 7 October 2026: the trading day.** Each price row now stores
+the trading day NGX reports (`tradeDate`), one row per company per
+trading day. The 7-day check measures the age of that trading day, and
+grading uses the first trading day on or after the resolve date
+(`market-data/price-history.ts`). Before, both used the time our run
+saved the row, and runs start hours late: one saved after 23:00 UTC
+falls on the next Lagos day. It also means a frozen feed, whose rows
+are saved today but dated days ago, can't pass the check. Rows saved
+before this have no trading day and keep the old rule.
+
 ## Status
 
 Accepted, amended.

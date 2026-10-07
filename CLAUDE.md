@@ -72,6 +72,11 @@ at staging. The test backend always runs with `DISABLE_SCHEDULED_JOBS=true`.
 - Reference price = latest row in the `Price` history, at most 7 days old;
   publishing is refused (409) otherwise. Never `Security.currentPrice`, which
   the seed fills with a 100.00 placeholder (ADR 004).
+- Prices carry NGX's trading day (`Price.tradeDate`, one row per company
+  per trading day; a second run for a stored day writes nothing). Every
+  "which close" question goes through `market-data/price-history.ts`:
+  the 7-day check and grading use the trade date, and only rows saved
+  before October 2026 (no trade date) fall back to when they were saved.
 - Browser calls go to `/api/...` on the frontend's own domain, rewritten to the
   API, so the session cookie is first-party (ADR 007). Server code uses
   `BACKEND_URL`.

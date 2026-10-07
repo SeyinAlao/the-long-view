@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { firstPriceOnOrAfter } from '../market-data/price-history';
 
 export interface ThesisForEvaluation {
   id: string;
@@ -83,10 +84,9 @@ export class EvaluationService {
       // The real price closest to (at or after) the resolve date - not
       // an estimate, not today's price, the actual market price from
       // around when this call was supposed to have played out.
-      const priceAtResolve = await this.prisma.price.findFirst({
-        where: { securityId: thesis.securityId, recordedAt: { gte: resolveAt } },
-        orderBy: { recordedAt: 'asc' },
-      });
+      // On a trading day: NGX's own trade date where the row has one
+      // (price-history.ts), so a late run can't shift which close counts.
+      const priceAtResolve = await firstPriceOnOrAfter(this.prisma, thesis.securityId, resolveAt);
 
       if (!priceAtResolve) {
         // No price data reaches far enough yet - the daily market-data
