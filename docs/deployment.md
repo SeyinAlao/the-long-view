@@ -179,6 +179,68 @@ Rehearsed on 5 October 2026 against a local database built the way staging is (t
 
 **Production (read-only check, 5 October 2026):** its ledger records the first three migrations, all finished, and it has the same missing index (0 duplicate pairs). It needs no baselining: `migrate deploy` would apply 4 and 5. It is to be replaced by a clean database at go-live anyway.
 
+### Trade date and Terms columns (`20261007120000_trade_date_and_terms`)
+
+One additive migration: `Price.tradeDate` (date, nullable) with a unique index on `("securityId", "tradeDate")`, and `User.termsVersion` (text) and `User.termsAcceptedAt` (timestamp), both nullable. Nothing is backfilled or deleted.
+
+**Apply it to staging before merging the PR that adds it** (`chore/migration-trade-date-terms`). The new code's Prisma client reads these columns, so it fails against a database without them. The code running now is unaffected by the migrated database: Prisma names the columns it reads, and its price inserts leave `tradeDate` empty (the full backend e2e suite passed with the old schema's client against a migrated database, 7 October 2026). The private jobs check out `master`, so they pick the new client up only after the merge.
+
+From `backend/`, in PowerShell, with the PR's branch checked out (`git switch chore/migration-trade-date-terms`). The check files are in `prisma/checks/`, each read-only.
+
+1. **Host check.** Load staging's **direct** URL into this window only:
+   ```
+   $env:DIRECT_URL = "<staging's direct connection string>"
+   $psql = "C:\Program Files\PostgreSQL\18\bin\psql.exe"
+   $u = [uri]$env:DIRECT_URL; "$($u.Host)  $($u.AbsolutePath)"
+   ```
+   It must print a host starting `ep-bold-sky-a5oday2y.`, with no `-pooler`, and `/neondb`. Anything else: stop.
+2. **Read-only status and ledger:**
+   ```
+   npx prisma migrate status
+   & $psql $env:DIRECT_URL -f prisma\checks\migration-ledger.sql
+   ```
+   Status must list exactly one migration not yet applied, `20261007120000_trade_date_and_terms`. The ledger must list the five before it, each with `finished_at` and no `rolled_back_at`. Anything else: stop.
+3. **Read-only diffs** (the local shadow database, as before; Prisma wipes it, and prisma.config.ts refuses one without "shadow" in its name):
+   ```
+   & $psql "postgresql://postgres:<local password>@localhost:5432/postgres" -c "CREATE DATABASE the_long_view_shadow"   # "already exists" is fine
+   $env:SHADOW_DATABASE_URL = "postgresql://postgres:<local password>@localhost:5432/the_long_view_shadow"
+   $five = Join-Path $env:TEMP "tlv-first-five"
+   Remove-Item $five -Recurse -Force -ErrorAction SilentlyContinue
+   Copy-Item prisma\migrations $five -Recurse
+   Remove-Item (Join-Path $five "20261007120000_trade_date_and_terms") -Recurse
+
+   # a) Staging must match the first five exactly
+   npx prisma migrate diff --from-config-datasource --to-migrations $five --exit-code
+   "exit code: $LASTEXITCODE"
+
+   # b) What the new migration adds, as SQL
+   npx prisma migrate diff --from-config-datasource --to-migrations prisma\migrations --script --exit-code
+   "exit code: $LASTEXITCODE"
+
+   Remove-Item Env:\SHADOW_DATABASE_URL
+   ```
+   a) must print `No difference detected.` and `exit code: 0`. b) must print `exit code: 2` and exactly three statements: `ALTER TABLE "public"."Price" ADD COLUMN "tradeDate" DATE;`, `ALTER TABLE "public"."User" ADD COLUMN "termsAcceptedAt" TIMESTAMP(3), ADD COLUMN "termsVersion" TEXT;` and `CREATE UNIQUE INDEX "Price_securityId_tradeDate_key" ON "public"."Price"("securityId" ASC, "tradeDate" ASC);` (the same as the migration file; Prisma adds the schema name and `ASC`, both defaults). Anything else: stop, and keep the output (structure only, no data).
+4. **Read-only checks, before:**
+   ```
+   & $psql $env:DIRECT_URL -f prisma\checks\price-columns.sql
+   & $psql $env:DIRECT_URL -f prisma\checks\user-terms-columns.sql
+   ```
+   All three queries print `(0 rows)`. No duplicate check is needed: every existing price row has an empty `tradeDate`, and empty values never clash in a unique index.
+5. **Snapshot:** in the Neon console, create a branch from `staging`, for example `staging-before-trade-date`. Free and instant; it is the way back. Every step from here writes.
+6. **Apply:** `npx prisma migrate deploy`. It prints `Applying migration 20261007120000_trade_date_and_terms`.
+7. **Verify:**
+   ```
+   npx prisma migrate status
+   & $psql $env:DIRECT_URL -f prisma\checks\migration-ledger.sql
+   & $psql $env:DIRECT_URL -f prisma\checks\price-columns.sql
+   & $psql $env:DIRECT_URL -f prisma\checks\user-terms-columns.sql
+   ```
+   Status says `Database schema is up to date!`. The ledger lists six, all with `finished_at`. `tradeDate` is `date`, nullable, and the index is `CREATE UNIQUE INDEX "Price_securityId_tradeDate_key" ON public."Price" USING btree ("securityId", "tradeDate")`. `termsAcceptedAt` is `timestamp` and `termsVersion` is `text`, both nullable, with no default.
+8. **If step 6 failed:** nothing of the migration was applied (it runs in one transaction). Run `npx prisma migrate resolve --rolled-back 20261007120000_trade_date_and_terms`, keep the output, and stop.
+9. `Remove-Item Env:\DIRECT_URL`. Then the PR can merge. The Neon snapshot branch can be deleted once the next scheduled market run has succeeded.
+
+Rehearsed on 7 October 2026 on a local database built the way staging is (the first five migrations applied and recorded): status listed exactly the new migration; diff (a) printed no difference with exit code 0, and (b) exactly the three statements above with exit code 2; the three before-checks printed `(0 rows)`; deploy applied it; status was up to date, the ledger had six finished rows, and the checks showed the columns and index above.
+
 ### Baselining: tables exist but the migration ledger is empty
 
 `prisma migrate status` listing **every** migration as not yet applied, on a database whose tables exist, means `_prisma_migrations` is empty. A Neon **schema-only branch** does this: it copies every table's structure and no rows, the ledger included (Neon docs: "Schema-only branches"). That is how `staging` was created. Never run `migrate deploy` on such a database before baselining: it would try to create tables that already exist.
