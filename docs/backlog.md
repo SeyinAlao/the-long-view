@@ -30,6 +30,8 @@ Agreed 5 October 2026 during the pre-launch audit. Each step is its own PR, merg
 
 ## After going live
 
+- **Trigger: before upgrading `pg` or `pg-connection-string`. Set `sslmode` explicitly.** Today (`pg` 8.23, `pg-connection-string` 2.14) `sslmode=require`, which Neon's strings use, is treated as `verify-full` (the jobs print a warning saying so). From `pg` 9 / `pg-connection-string` 3 it will mean libpq's weaker `require` (encrypted, certificate not checked). Before upgrading: change every pooled `DATABASE_URL` (Render, the jobs repo, production at go-live) to `sslmode=verify-full`, keeping `channel_binding=require`; test on staging first (health, sign-in, a manual stale-price alert run). `DIRECT_URL` is read by the Prisma CLI and `pg_dump` (libpq), not `pg`: leave it, and separately consider `sslmode=verify-full&sslrootcert=system` for the backup after one manual test. Nothing breaks today.
+
 - **SRI spike: a stricter Content Security Policy.** Next.js's experimental `sri` option hashes our scripts at build time. It might let `script-src` drop `'unsafe-inline'` while static pages and edge caching keep working (ADR 011). Spike it on a branch and check whether Next's inline startup scripts still run. Adopt it only if it works without `'unsafe-inline'` and isn't still marked experimental, or if the risk is accepted in writing.
 - **Email verification at password sign-up.**
 - **Share a thought, story-style, linking to the full thesis**, with the full thesis behind sign-in.
