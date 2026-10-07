@@ -70,9 +70,13 @@ loads in the browser), so one cached copy is safe to share.
   `x-nextjs-postponed: 2` only marks a response from Next's per-segment
   prefetch cache; `1` would mean a partial (PPR) page, which we don't
   use. The only CSP block was Vercel's own Preview toolbar
-  (`vercel.live`), which stays out of the policy. Still to check, on
-  the live site after merging: the page itself (not the prefetch)
-  showing `x-vercel-cache: HIT` and a growing `age`.
+  (`vercel.live`), which stays out of the policy.
+- **Verified live (7 October 2026, by Seyin with curl, after #47 and
+  #46 merged).** On the live site, `/feed`: first request
+  `x-vercel-cache: PRERENDER`, `age: 0`; second `HIT`, `age: 53`.
+  `/leaderboard`: first `PRERENDER`, `age: 0`; second `HIT`, `age: 24`.
+  Both carried `cache-control: public, max-age=0, must-revalidate` and
+  the full Content Security Policy. G5 is done.
 - The API sends `Cache-Control: no-store` (ADR 011). That doesn't stop
   the pages being cached: Next's page cache follows the page's
   `revalidate`, not the API's response headers.
