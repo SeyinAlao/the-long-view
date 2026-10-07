@@ -62,6 +62,23 @@ The private repo's **"Stale price alert"** workflow runs each weekday at 8:47am 
 2. After 4:30pm Lagos on a weekday, run "Daily market jobs" by hand (Run workflow). Its "Updated" line should show about 146 securities and the day's NGX trade date.
 3. The next morning's alert run should pass.
 
+## Uptime monitor (G2)
+
+The API answers two health checks without the edge key:
+
+- `/health/live`: the process is up. No database call.
+- `/health`: the database is reachable too. It says only `up` or `down`; the reason goes to Render's log as an error name and code.
+
+The monitor calls **`/health/live`** only. A check every 5 minutes keeps Render's free API from sleeping. Calling `/health` that often would also keep Neon's database from ever sleeping, and use up its free compute.
+
+Setup (UptimeRobot free plan: 50 monitors, 5-minute interval, email alerts; its terms, updated 26 May 2026, allow any use):
+
+1. New monitor, type HTTP(s), URL `https://the-long-view-api.onrender.com/health/live`, interval 5 minutes.
+2. Alert contact: your email. Keyword or status check: HTTP 200.
+3. Don't add a monitor on any other API path: every other path needs the edge key and would get 403.
+
+Render's free plan allows 750 instance hours a month for all free web services together. An API kept awake all month uses about 744 (31 days), which leaves almost nothing for any other free service and suspends them all if exceeded. Watch them under Billing, "Monthly Included Usage"; Render also emails when the limit is near (render.com/docs/free).
+
 ## Restoring a backup
 
 The step-by-step PowerShell procedure, and `restore-check.sql` for the row counts, are in the private repo's README. Restoring was proven on 2 October 2026 (row counts matched the backup run's summary). The rules that matter:
