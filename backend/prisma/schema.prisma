@@ -146,6 +146,11 @@ model Thesis {
   invalidationCondition String?
 
   publishedAt DateTime?
+  // Set only by the operator, never the author: hides a thesis that
+  // breaks the Terms or the law (Terms, section 7). Hidden, never
+  // deleted. The reason is never shown publicly.
+  hiddenAt     DateTime?
+  hiddenReason String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
