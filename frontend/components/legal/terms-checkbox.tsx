@@ -11,7 +11,8 @@ interface TermsCheckboxProps {
 
 // The agreement, wherever it's asked for (sign-up, the accept step):
 // a real, unticked checkbox with its label, the documents linked, and an
-// error tied to it and announced (ADR 014, WCAG 2.2 AA).
+// error tied to it and announced (ADR 014, WCAG 2.2 AA). It includes the
+// age declaration: 18 or older, self-declared, not verified.
 export function TermsCheckbox({ checked, onChange, error, inputRef }: TermsCheckboxProps) {
   return (
     <div>
@@ -27,7 +28,7 @@ export function TermsCheckbox({ checked, onChange, error, inputRef }: TermsCheck
           className="mt-1 h-4 w-4 shrink-0 accent-ink"
         />
         <label htmlFor="accept-terms" className="text-sm leading-relaxed text-ink/80">
-          I agree to the{' '}
+          I&apos;m 18 or older. I agree to the{' '}
           <Link href={TERMS_PATH} className="font-medium text-ink underline underline-offset-2">
             Terms of Service
           </Link>{' '}
