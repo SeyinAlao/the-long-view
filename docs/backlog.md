@@ -30,6 +30,8 @@ Agreed 5 October 2026 during the pre-launch audit. Each step is its own PR, merg
 
 ## After going live
 
+- **Make the stale-price alert aware of NGX's listed trading holidays** (after Stage 1). Two weekday closures in a row trip it the next morning (docs/deployment.md, "Weekday market closures"); a small list of NGX holiday dates, checked against NGX's own calendar each year, would stop the false alarm.
+
 - **SRI spike: a stricter Content Security Policy.** Next.js's experimental `sri` option hashes our scripts at build time. It might let `script-src` drop `'unsafe-inline'` while static pages and edge caching keep working (ADR 011). Spike it on a branch and check whether Next's inline startup scripts still run. Adopt it only if it works without `'unsafe-inline'` and isn't still marked experimental, or if the risk is accepted in writing.
 - **Email verification at password sign-up.**
 - **Share a thought, story-style, linking to the full thesis**, with the full thesis behind sign-in.
