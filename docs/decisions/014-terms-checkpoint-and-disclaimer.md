@@ -32,8 +32,11 @@ publish. Everyone sees what a thesis is. Reading never needs any of it.
   Changing it makes everyone accept again. Change it in the same PR as
   the documents, and only for a change people need to agree to.
 - **The documents** are rendered at build time from `docs/legal/*.md`
-  (`/terms`, `/privacy`), so the page and the reviewed text can't
-  drift. Still marked DRAFT until a qualified person has reviewed them.
+  (`/terms`, `/privacy`), so the pages can't drift from the files a
+  reviewer will read. **Not yet reviewed by a qualified person:** both
+  stay headed "DRAFT - not legal advice - needs review by a qualified
+  person" until one has, and that review is a launch-gate item before
+  the public stage.
 - **A footer slot** for "Source: NGX, prices as of <date>"
   (`SiteFooter`'s `priceSource`), not yet filled (backlog).
 

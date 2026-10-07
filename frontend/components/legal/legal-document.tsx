@@ -4,8 +4,9 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 // The Terms and the Privacy Policy, rendered from the same markdown files
-// the reviewer reads (docs/legal/), so the page can never drift from the
-// reviewed text. Read at build time: these pages are static. react-markdown
+// a qualified reviewer will read (docs/legal/), so the page can never
+// drift from the text under review. They are DRAFTS, not yet reviewed by
+// anyone qualified, and say so at the top. Read at build time: these pages are static. react-markdown
 // escapes everything and renders no raw HTML (no dangerouslySetInnerHTML),
 // so the documents can't inject markup. remark-gfm adds the tables.
 const LEGAL_DIR = path.join(process.cwd(), '..', 'docs', 'legal');
