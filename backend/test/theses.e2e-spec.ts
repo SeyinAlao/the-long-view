@@ -12,7 +12,7 @@ describe('Theses (e2e)', () => {
   async function registerAndGetCookie(email: string, username: string) {
     const res = await request(app.getHttpServer())
       .post('/auth/register')
-      .send({ email, username, password: 'correct-horse-battery', name: 'Test User' });
+      .send({ acceptedTerms: true, email, username, password: 'correct-horse-battery', name: 'Test User' });
     return res.headers['set-cookie'];
   }
 
@@ -96,7 +96,7 @@ describe('Theses (e2e)', () => {
       .expect(201);
 
     const refused = await request(app.getHttpServer())
-      .post(`/theses/${created.body.id}/publish`)
+      .post(`/theses/${created.body.id}/publish`).send({ confirmed: true })
       .set('Cookie', cookie)
       .expect(409);
     expect(refused.body.message).toContain("doesn't have a current market price");
@@ -118,7 +118,7 @@ describe('Theses (e2e)', () => {
       .expect(201);
 
     const published = await request(app.getHttpServer())
-      .post(`/theses/${created.body.id}/publish`)
+      .post(`/theses/${created.body.id}/publish`).send({ confirmed: true })
       .set('Cookie', cookie)
       .expect(201);
 
@@ -195,7 +195,7 @@ describe('Theses (e2e)', () => {
       .expect(201);
 
     await request(app.getHttpServer())
-      .post(`/theses/${created.body.id}/publish`)
+      .post(`/theses/${created.body.id}/publish`).send({ confirmed: true })
       .set('Cookie', intruderCookie)
       .expect(403);
 
@@ -213,7 +213,7 @@ describe('Theses (e2e)', () => {
       .set('Cookie', cookie)
       .send(validThesisBody)
       .expect(201);
-    await request(app.getHttpServer()).post(`/theses/${created.body.id}/publish`).set('Cookie', cookie).expect(201);
+    await request(app.getHttpServer()).post(`/theses/${created.body.id}/publish`).send({ confirmed: true }).set('Cookie', cookie).expect(201);
 
     const feed = await request(app.getHttpServer()).get('/theses?ticker=DANGCEM').expect(200);
     expect(feed.body.some((t: { id: string }) => t.id === created.body.id)).toBe(true);

@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { createTestApp } from './create-test-app';
+import { TERMS_VERSION } from '../src/auth/terms';
 import { finishGoogleSignIn, startGoogleSignIn, stubGoogle } from './google-stub';
 
 // Google sign-in's `state`: every callback must answer a sign-in this
@@ -66,8 +67,15 @@ describe('Google sign-in state and return path (e2e)', () => {
     });
   });
 
+  // A Google account that has signed in before and accepted the current
+  // Terms, so these tests see where it goes back to (ADR 003). New
+  // accounts go through /welcome/terms first (tests below, ADR 014).
+  const returningGoogleUser = (termsVersion: string | null = TERMS_VERSION) =>
+    prisma.user.create({ data: { email: EMAIL, username: 'state_google', name: 'State', googleId: 'g-state', termsVersion } });
+
   describe('returning from Google', () => {
     it('goes back to the page given as ?next=, and clears the state cookie', async () => {
+      await returningGoogleUser();
       const res = await finishGoogleSignIn(app, await startGoogleSignIn(app, '/theses/abc'));
 
       expect(res.headers.location).toMatch(/\/theses\/abc$/);
@@ -76,6 +84,7 @@ describe('Google sign-in state and return path (e2e)', () => {
     });
 
     it('goes to the dashboard without a ?next=', async () => {
+      await returningGoogleUser();
       const res = await finishGoogleSignIn(app, await startGoogleSignIn(app));
       expect(res.headers.location).toMatch(/\/dashboard$/);
     });
@@ -83,15 +92,28 @@ describe('Google sign-in state and return path (e2e)', () => {
     it.each([['//evil.example'], ['https://evil.example'], ['/\\evil.example']])(
       'ignores a ?next= that leaves the site: %s',
       async (next) => {
+        await returningGoogleUser();
         const res = await finishGoogleSignIn(app, await startGoogleSignIn(app, next));
         expect(res.headers.location).toMatch(/\/dashboard$/);
       },
     );
 
+    it('a new Google account accepts the Terms first, then carries on to ?next=', async () => {
+      const res = await finishGoogleSignIn(app, await startGoogleSignIn(app, '/theses/abc'));
+      expect(res.headers.location).toMatch(/\/welcome\/terms\?next=%2Ftheses%2Fabc$/);
+      expect(sessionCookieIn(res)).toBeDefined();
+    });
+
+    it('an account that accepted an older version of the Terms accepts again', async () => {
+      await returningGoogleUser('2000-01-01');
+      const res = await finishGoogleSignIn(app, await startGoogleSignIn(app));
+      expect(res.headers.location).toMatch(/\/welcome\/terms\?next=%2Fdashboard$/);
+    });
+
     it('the "Google is now how you sign in" notice wins over ?next=', async () => {
       await request(app.getHttpServer())
         .post('/auth/register')
-        .send({ email: EMAIL, password: 'correct-horse-battery', username: 'stateuser', name: 'State' })
+        .send({ acceptedTerms: true, email: EMAIL, password: 'correct-horse-battery', username: 'stateuser', name: 'State' })
         .expect(201);
 
       const res = await finishGoogleSignIn(app, await startGoogleSignIn(app, '/theses/abc'));
