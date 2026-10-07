@@ -13,7 +13,7 @@ npm workspaces monorepo. Run installs from the repo root.
 - `frontend/` - Next.js 16 App Router, React 19, TanStack Query, Zustand, Tailwind v4
 - `e2e/` - Playwright browser tests (+ axe-core), run against a real API,
   frontend and a delay relay; CI job "Browser tests"
-- `docs/decisions/` - ADRs 001-013. Read the relevant one before changing that area.
+- `docs/decisions/` - ADRs 001-014. Read the relevant one before changing that area.
 - `docs/deployment.md` - runbook: hosts, every env var, setup order, migrations
 - `docs/backlog.md` - agreed deferred work, split before / after launch
 
@@ -118,6 +118,14 @@ at staging. The test backend always runs with `DISABLE_SCHEDULED_JOBS=true`.
   and throws at runtime, so Next keeps the last good page. Never use
   request-time APIs (`cookies()`, `headers()`) on them, and never give
   their fetch `no-store`: either makes them dynamic.
+- Terms (ADR 014): every write needs the current Terms accepted
+  (`TermsAcceptedGuard`, 403 `terms_not_accepted`); sign-up needs
+  `acceptedTerms: true`; publishing needs `{ confirmed: true }`. Pages
+  for writing use `requireWritingUser`. `TERMS_VERSION`
+  (backend/src/auth/terms.ts) changes only with the documents in
+  `docs/legal/`, which `/terms` and `/privacy` render at build time.
+  Non-commercial (no ads, fees, sponsorship, affiliate links) until the
+  legal drafts are reviewed.
 - Security headers (ADR 011): one fixed CSP for all pages, set in
   `frontend/security-headers.ts` - no nonce, which would make every page
   dynamic and break G5's caching. Never add `eval`, inline event

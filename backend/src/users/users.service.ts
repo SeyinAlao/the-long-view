@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { randomInt } from 'crypto';
 import { normaliseEmail } from './normalise-email';
+import { hasAcceptedCurrentTerms, TERMS_VERSION } from '../auth/terms';
 
 export interface CreateUserInput {
   email: string;
@@ -9,6 +10,8 @@ export interface CreateUserInput {
   name: string;
   passwordHash?: string | null;
   googleId?: string | null;
+  // True only when the person ticked the Terms box (email sign-up).
+  acceptedTerms?: boolean;
 }
 
 // The full row. Only AuthService handles it, to check a password or to
@@ -25,6 +28,7 @@ export interface RawUser {
   passwordHash: string | null;
   googleId: string | null;
   sessionVersion: number;
+  termsVersion: string | null;
 }
 
 // Callers outside this service should only ever see this shape — never
@@ -38,6 +42,9 @@ export type SafeUser = {
   bio: string | null;
   avatarUrl: string | null;
   createdAt: Date;
+  // Whether they've accepted the current Terms (ADR 014). Not the
+  // version itself: that's the server's business.
+  termsAccepted: boolean;
 };
 
 @Injectable()
@@ -52,8 +59,18 @@ export class UsersService {
         name: input.name,
         passwordHash: input.passwordHash ?? null,
         googleId: input.googleId ?? null,
+        ...(input.acceptedTerms && { termsVersion: TERMS_VERSION, termsAcceptedAt: new Date() }),
       },
     });
+  }
+
+  // Records acceptance of the current Terms (ADR 014).
+  async acceptTerms(id: string): Promise<SafeUser> {
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: { termsVersion: TERMS_VERSION, termsAcceptedAt: new Date() },
+    });
+    return this.toSafeUser(user);
   }
 
   // Raw lookups — includes passwordHash. Only AuthService should call
@@ -87,11 +104,12 @@ export class UsersService {
   // email and disambiguate on collision. Not exposed outside this
   // service — AuthService just wants a valid, available username back.
   async generateUsernameFromEmail(email: string): Promise<string> {
-    const base = email
-      .split('@')[0]
-      .toLowerCase()
-      .replace(/[^a-z0-9_]/g, '')
-      .slice(0, 25) || 'user';
+    const base =
+      email
+        .split('@')[0]
+        .toLowerCase()
+        .replace(/[^a-z0-9_]/g, '')
+        .slice(0, 25) || 'user';
 
     let candidate = base;
     let attempt = 0;
@@ -109,6 +127,15 @@ export class UsersService {
 
   toSafeUser(user: RawUser): SafeUser {
     const { id, email, username, name, bio, avatarUrl, createdAt } = user;
-    return { id, email, username, name, bio, avatarUrl, createdAt };
+    return {
+      id,
+      email,
+      username,
+      name,
+      bio,
+      avatarUrl,
+      createdAt,
+      termsAccepted: hasAcceptedCurrentTerms(user),
+    };
   }
 }

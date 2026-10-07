@@ -1,4 +1,4 @@
-import { IsEmail, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { Equals, IsEmail, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { normaliseEmail } from '../../users/normalise-email';
 import { MaxUtf8Bytes } from './max-utf8-bytes.decorator';
@@ -35,4 +35,11 @@ export class RegisterDto {
   @MinLength(1)
   @MaxLength(100)
   name!: string;
+
+  // The sign-up checkbox (ADR 014): the Terms and the Privacy Policy,
+  // and that theses are opinions, not investment advice.
+  @Equals(true, {
+    message: 'You must agree to the Terms of Service and the Privacy Policy to create an account.',
+  })
+  acceptedTerms!: boolean;
 }

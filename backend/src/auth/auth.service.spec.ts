@@ -19,6 +19,7 @@ const storedUser = (overrides: Partial<StoredUser> = {}): StoredUser => ({
   passwordHash: null,
   googleId: null,
   sessionVersion: 0,
+  termsVersion: null,
   ...overrides,
 });
 
@@ -58,6 +59,7 @@ describe('AuthService', () => {
         passwordHash: input.passwordHash ?? null,
         googleId: null,
         sessionVersion: 0,
+        termsVersion: input.acceptedTerms ? '2026-10-07' : null,
       }));
 
       await authService.register({
@@ -65,6 +67,7 @@ describe('AuthService', () => {
         username: 'seyin',
         password: 'correct-horse-battery-staple',
         name: 'Seyin Alao',
+        acceptedTerms: true,
       });
 
       const createArg = usersService.create.mock.calls[0][0];
@@ -87,6 +90,7 @@ describe('AuthService', () => {
           username: 'new_user',
           password: 'correct-horse-battery-staple',
           name: 'Someone',
+          acceptedTerms: true,
         }),
       ).rejects.toThrow(ConflictException);
     });
@@ -101,6 +105,7 @@ describe('AuthService', () => {
           username: 'taken',
           password: 'correct-horse-battery-staple',
           name: 'Someone',
+          acceptedTerms: true,
         }),
       ).rejects.toThrow(ConflictException);
     });
@@ -136,6 +141,7 @@ describe('AuthService', () => {
         bio: null,
         avatarUrl: null,
         createdAt: rawUser.createdAt,
+        termsAccepted: false,
       });
 
       const result = await authService.login({
@@ -170,8 +176,21 @@ describe('AuthService.loginWithGoogle', () => {
     bio: null,
     avatarUrl: null,
     createdAt: new Date(),
+    termsAccepted: false,
   };
-  const rawUser = { ...safeUser, passwordHash: null, googleId: 'g-123', sessionVersion: 0 };
+  const rawUser = {
+    id: safeUser.id,
+    email: safeUser.email,
+    username: safeUser.username,
+    name: safeUser.name,
+    bio: null,
+    avatarUrl: null,
+    createdAt: safeUser.createdAt,
+    passwordHash: null,
+    googleId: 'g-123',
+    sessionVersion: 0,
+    termsVersion: null,
+  };
 
   beforeEach(() => {
     usersService = {

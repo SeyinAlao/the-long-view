@@ -1,14 +1,11 @@
 import { notFound, redirect } from 'next/navigation';
-import { getCurrentUserServer } from '@/lib/server-auth';
+import { requireWritingUser } from '@/lib/server-auth';
 import { getThesisServer } from '@/lib/server-theses';
 import { ThesisForm } from '@/components/theses/thesis-form';
 
 export default async function EditThesisPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const user = await getCurrentUserServer();
-  if (!user) {
-    redirect(`/login?next=/theses/${id}/edit`);
-  }
+  await requireWritingUser(`/theses/${id}/edit`);
 
   const thesis = await getThesisServer(id);
   // Draft privacy is enforced by the backend itself (returns 404 for a

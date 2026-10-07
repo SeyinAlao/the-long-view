@@ -26,7 +26,7 @@ describe('Google account linking (e2e)', () => {
   const registerWithPassword = async () => {
     const res = await http()
       .post('/auth/register')
-      .send({ email: EMAIL, password: PASSWORD, username: 'early', name: 'Early' })
+      .send({ acceptedTerms: true, email: EMAIL, password: PASSWORD, username: 'early', name: 'Early' })
       .expect(201);
     return res.headers['set-cookie'] as unknown as string[];
   };
@@ -179,7 +179,7 @@ describe('Google account linking (e2e)', () => {
 
     const res = await callback();
 
-    expect(res.headers.location).toMatch(/\/dashboard$/);
+    expect(res.headers.location).toMatch(/\/welcome\/terms\?next=%2Fdashboard$/);
     expect((await account()).googleId).toBe('g-new');
   });
 
@@ -196,11 +196,11 @@ describe('Google account linking (e2e)', () => {
     stubGoogle(app, { id: 'g-new', email: 'New.Person@Example.com', verified: true });
 
     const first = await callback();
-    expect(first.headers.location).toMatch(/\/dashboard$/);
+    expect(first.headers.location).toMatch(/\/welcome\/terms\?next=%2Fdashboard$/);
     expect((await prisma.user.findFirstOrThrow({ where: { googleId: 'g-new' } })).email).toBe('new.person@example.com');
 
     const again = await callback();
-    expect(again.headers.location).toMatch(/\/dashboard$/);
+    expect(again.headers.location).toMatch(/\/welcome\/terms\?next=%2Fdashboard$/);
     expect(await prisma.user.count()).toBe(1);
   });
 });

@@ -43,9 +43,14 @@ export class AuthService {
       username: dto.username,
       passwordHash,
       name: dto.name,
+      acceptedTerms: dto.acceptedTerms,
     });
 
     return this.issueSession(user);
+  }
+
+  async acceptTerms(userId: string): Promise<SafeUser> {
+    return this.usersService.acceptTerms(userId);
   }
 
   async login(dto: LoginDto): Promise<{ user: SafeUser; accessToken: string }> {
@@ -95,7 +100,11 @@ export class AuthService {
         this.logger.warn(`google_link_refused userId=${byEmail.id} reason=${link.reason}`);
         return { outcome: 'refused' };
       }
-      return { outcome: 'signed_in', ...this.issueSession(link.user), passwordCleared: link.passwordCleared };
+      return {
+        outcome: 'signed_in',
+        ...this.issueSession(link.user),
+        passwordCleared: link.passwordCleared,
+      };
     }
 
     const username = await this.usersService.generateUsernameFromEmail(profile.email);
@@ -118,7 +127,11 @@ export class AuthService {
   // The one place a session token is made. `sv` ties it to the user's
   // current session version, so raising that version ends it.
   private issueSession(record: RawUser): { user: SafeUser; accessToken: string } {
-    const accessToken = this.jwtService.sign({ sub: record.id, email: record.email, sv: record.sessionVersion });
+    const accessToken = this.jwtService.sign({
+      sub: record.id,
+      email: record.email,
+      sv: record.sessionVersion,
+    });
     return { user: this.usersService.toSafeUser(record), accessToken };
   }
 }

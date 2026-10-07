@@ -1,7 +1,7 @@
 import { test, expect } from '../support/fixtures';
 import { addPrice } from '../support/db';
 import { newAccount, signOut, signUpWithForm } from '../support/accounts';
-import { chooseCompany, fillThesis, saveDraft, statementFor } from '../support/thesis-form';
+import { chooseCompany, fillThesis, saveDraft, statementFor, publishFromForm } from '../support/thesis-form';
 
 // The whole loop, as two real people would do it on one browser:
 // write, save, change your mind, publish, and be disagreed with.
@@ -30,7 +30,7 @@ test('sign up, draft, re-save, publish, see it on the Ledger, be countered, sign
   await page.goto('/theses/mine');
   await page.getByRole('link', { name: /DANGCEM/ }).click();
   await expect(page.getByRole('combobox', { name: 'Security' })).toHaveValue(/^DANGCEM —/);
-  await page.getByRole('button', { name: 'Publish thesis' }).click();
+  await publishFromForm(page);
   await expect(page.getByRole('heading', { name: 'Locked. The record is keeping time.' })).toBeVisible();
 
   // The Ledger is a cached page (ADR 013): the thesis appears once a

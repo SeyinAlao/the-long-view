@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import {
+  acceptTerms,
   fetchCurrentUser,
   loginUser,
   logoutUser,
@@ -35,7 +36,27 @@ export function useLogin(redirectTo = '/dashboard') {
       // Forget anything cached for whoever was here before - see useLogout.
       queryClient.clear();
       queryClient.setQueryData(CURRENT_USER_KEY, data);
-      router.push(redirectTo);
+      // An account that hasn't accepted the current Terms accepts them
+      // first, then carries on (ADR 014).
+      router.push(data.user.termsAccepted ? redirectTo : termsStepFor(redirectTo));
+      router.refresh();
+    },
+  });
+}
+
+export function termsStepFor(next: string): string {
+  return `/welcome/terms?next=${encodeURIComponent(next)}`;
+}
+
+export function useAcceptTerms(next: string) {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: acceptTerms,
+    onSuccess: (data) => {
+      queryClient.setQueryData(CURRENT_USER_KEY, data);
+      router.push(next);
       router.refresh();
     },
   });

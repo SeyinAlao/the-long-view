@@ -8,6 +8,8 @@ export interface SafeUser {
   bio: string | null;
   avatarUrl: string | null;
   createdAt: string;
+  // Whether they've accepted the current Terms (ADR 014).
+  termsAccepted: boolean;
 }
 
 export interface RegisterInput {
@@ -15,6 +17,7 @@ export interface RegisterInput {
   username: string;
   password: string;
   name: string;
+  acceptedTerms: boolean;
 }
 
 export interface LoginInput {
@@ -38,6 +41,10 @@ export function loginUser(input: LoginInput) {
 
 export function logoutUser() {
   return apiFetch<{ success: boolean }>('/auth/logout', { method: 'POST' });
+}
+
+export function acceptTerms() {
+  return apiFetch<{ user: SafeUser }>('/auth/accept-terms', { method: 'POST' });
 }
 
 export function fetchCurrentUser() {
