@@ -146,7 +146,10 @@ at staging. The test backend always runs with `DISABLE_SCHEDULED_JOBS=true`.
 - `refreshPrices()` refuses (and the script exits 1) on weekdays from
   9:00am to 4:30pm Lagos time, read in Africa/Lagos, never the machine's
   zone (`trading-hours.ts`). Every refresh adds a price row, so a mid-day
-  run would store intraday prices as a close.
+  run would store intraday prices as a close. It also refuses, writing
+  nothing, any row dated today before 4:30pm Lagos, in the future, or on
+  a weekend (`trade-date-guard.ts`), with no override. Manual runs: weekdays,
+  4:30pm to midnight Lagos only (docs/deployment.md).
 
 ## Where it runs
 
