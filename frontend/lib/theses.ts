@@ -102,7 +102,8 @@ export function updateThesis(id: string, input: Partial<CreateThesisInput>) {
 }
 
 export function publishThesis(id: string) {
-  return apiFetch<Thesis>(`/theses/${id}/publish`, { method: 'POST' });
+  // The author ticked the confirmation on the form (ADR 014).
+  return apiFetch<Thesis>(`/theses/${id}/publish`, { method: 'POST', body: JSON.stringify({ confirmed: true }) });
 }
 
 export function discardThesis(id: string) {

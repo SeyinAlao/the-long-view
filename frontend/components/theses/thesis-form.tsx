@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { thesisFormSchema, type ThesisFormValues } from '@/lib/thesis-schema';
@@ -14,6 +15,8 @@ import { RestoreDraftBanner } from './restore-draft-banner';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { ThesisFormActions } from './thesis-form-actions';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PublishConfirmation } from './publish-confirmation';
+import { MUST_CONFIRM_PUBLISH } from '@/lib/legal';
 import type { Thesis } from '@/lib/theses';
 
 const TheScenariosSection = dynamic(
@@ -51,8 +54,21 @@ export function ThesisForm({ existingThesis }: ThesisFormProps) {
   const autosave = useThesisDraftAutosave({ watch, reset, isEditing });
   const submission = useThesisSubmission(existingThesis?.id, autosave.clear);
 
+  const [confirmed, setConfirmed] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+  const confirmBox = useRef<HTMLInputElement>(null);
+
   const onSaveDraft = handleSubmit(submission.saveDraft);
-  const onPublish = handleSubmit(submission.publish);
+  // Publishing needs the confirmation ticked first (ADR 014). Unticked,
+  // the button explains why and moves focus to the box.
+  const onPublish = () => {
+    if (!confirmed) {
+      setConfirmError(MUST_CONFIRM_PUBLISH);
+      confirmBox.current?.focus();
+      return;
+    }
+    void handleSubmit(submission.publish)();
+  };
 
   if (submission.isSuccess) {
     return <ThesisSubmittedView variant={submission.successVariant} />;
@@ -97,6 +113,17 @@ export function ThesisForm({ existingThesis }: ThesisFormProps) {
           isPublishing={submission.isPublishing}
           isError={submission.isError}
           error={submission.error}
+          confirmation={
+            <PublishConfirmation
+              checked={confirmed}
+              onChange={(value) => {
+                setConfirmed(value);
+                if (value) setConfirmError(null);
+              }}
+              error={confirmError}
+              inputRef={confirmBox}
+            />
+          }
         />
       </form>
     </div>

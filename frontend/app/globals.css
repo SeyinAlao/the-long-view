@@ -46,6 +46,24 @@
   }
 }
 
+/* The Terms and Privacy pages, rendered from markdown (ADR 014). Only
+   these elements appear in docs/legal/. Colours are the measured tokens
+   above; tables scroll sideways on a phone rather than overflow. */
+.legal-document {
+  h1 { @apply mt-8 text-3xl first:mt-0; }
+  h2 { @apply mt-8 text-2xl; }
+  h3 { @apply mt-6 text-xl; }
+  p, ul, ol, table, blockquote { @apply mt-3 max-w-prose; }
+  ul { @apply list-disc pl-5; }
+  ol { @apply list-decimal pl-5; }
+  li { @apply mt-1; }
+  strong { @apply font-medium text-ink; }
+  a { @apply underline underline-offset-4; }
+  blockquote { @apply border-l-2 border-ink/20 pl-3 text-muted; }
+  table { @apply block overflow-x-auto text-xs; }
+  th, td { @apply border border-ink/15 px-2 py-1 text-left align-top; }
+}
+
 /* Respected globally, not bolted on per-component later. */
 @media (prefers-reduced-motion: reduce) {
   *,
