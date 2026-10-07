@@ -105,7 +105,9 @@ export function SignupForm() {
             onChange={(e) => setPassword(e.target.value)}
             className="mt-1 w-full rounded-md border border-ink/20 bg-cream px-3 py-2 text-sm text-ink focus:border-brass"
           />
-          <p className="mt-1 text-xs text-muted">At least 8 characters.</p>
+          {/* No maxLength: browsers count characters, not bytes, and would
+              silently cut a pasted password short. The API checks it. */}
+          <p className="mt-1 text-xs text-muted">8 to 72 characters (fewer if you use emoji or accented letters).</p>
         </div>
 
         {register.isError && (
