@@ -77,7 +77,19 @@ Setup (UptimeRobot free plan: 50 monitors, 5-minute interval, email alerts; its 
 2. Alert contact: your email. Keyword or status check: HTTP 200.
 3. Don't add a monitor on any other API path: every other path needs the edge key and would get 403.
 
-Render's free plan allows 750 instance hours a month for all free web services together. An API kept awake all month uses about 744 (31 days), which leaves almost nothing for any other free service and suspends them all if exceeded. Watch them under Billing, "Monthly Included Usage"; Render also emails when the limit is near (render.com/docs/free).
+**When it runs (decided 7 October 2026):** from the day before stage 1 through the end of stage 2 (about 15 days, about 360 hours), then reassess with the Billing numbers. Always-on only after suspending the workspace's older free services. The Ledger and Leaderboard are cached (ADR 013) and stay up while the API sleeps; keep-awake mainly helps sign-in, publishing and thesis pages.
+
+### Render's free limits
+
+Render's free allowances are per **workspace** and per **calendar month**, shared by every free service in it (render.com/docs/free, render.com/docs/build-pipeline):
+
+- **750 free instance hours.** An API awake all of a 31-day month uses 744, leaving 6. Over the limit, Render "suspends all of your Free web services until the start of the next month".
+- **Outbound bandwidth** (5 GB on Hobby). Without a payment method, going over "suspends all of your Free services for the remainder of the month".
+- **500 pipeline minutes** (builds). Without a payment method, Render "stops running pipeline tasks (including service builds!) for the remainder of the current month": a fix couldn't be deployed. Only merges touching `backend/`, `package.json` or the lockfile build the API (`buildFilter` in render.yaml), at roughly a minute each.
+
+**Never add a payment method to this Render workspace** unless Seyin decides to accept charges. Without one, Render can't bill: an overrun suspends services or builds instead.
+
+**Every Monday (about 2 minutes, to protect availability):** Render, Billing, "Monthly Included Usage". Instance hours should be at most about 24 x the days the monitor has been on, plus a few; pipeline minutes under about 15 x the day of the month; bandwidth far below 5 GB. If anything is off, find which service is using it before changing anything. Render also emails when a limit is near.
 
 ## Restoring a backup
 
