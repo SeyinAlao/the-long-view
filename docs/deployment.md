@@ -74,6 +74,25 @@ Run "Daily market jobs" by hand **only on a weekday, between 4:30pm and midnight
 
 A refused run writes nothing, so it can't hide a gap: the stale-price alert counts days since the newest saved price, and the run itself fails. Run it again in the safe hours.
 
+### Weekday market closures (public holidays)
+
+On a weekday when NGX is closed, its list still shows the previous trading day, which is already stored. The refresh then succeeds and stores nothing ("Updated 0 … 146 already stored"); no email. But nothing new is saved, so **two weekday closures in a row trip the stale-price alert the next morning**: a false alarm.
+
+**The rule:** for any weekday closure, check NGX's own trading-holiday calendar and the Federal Government's announcement the week before (Islamic dates move with the moon sighting). For two closures in a row, expect the alert the next morning, say so in advance, and that morning check by hand that the nightly backups and the market job ran.
+
+Expected weekday closures through 31 March 2027 (from secondary listings, not an official source; Islamic dates are estimates):
+
+| Date | Closure | Stale-price alert |
+|---|---|---|
+| Fri 25 Dec 2026 | Christmas Day | - |
+| Sat 26 Dec 2026 | Boxing Day. If the Government moves it to Mon 28 Dec: | fires Tue 29 Dec (Fri 25 and Mon 28 missed) |
+| Fri 1 Jan 2027 | New Year's Day | - |
+| Wed 10 and Thu 11 Mar 2027 (estimate) | Eid al-Fitr | fires Fri 12 Mar |
+| Fri 26 Mar 2027 | Good Friday | - |
+| Mon 29 Mar 2027 | Easter Monday | fires Tue 30 Mar (Fri 26 and Mon 29 missed) |
+
+Sources (read 7 October 2026): Legit.ng's 2026 list (legit.ng/nigeria/1690582-full-list-public-holidays-fg-declare-2026), Current Affairs Nigeria (currentaffairs.com.ng/public-holidays), timeanddate.com (timeanddate.com/holidays/nigeria/2027) and nigeriaholidays.com.ng (official-holidays-2027.html). Confirm each against NGX's calendar before relying on it.
+
 ## Uptime monitor (G2)
 
 The API answers two health checks without the edge key:
