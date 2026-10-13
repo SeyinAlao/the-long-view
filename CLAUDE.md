@@ -201,7 +201,7 @@ FRONTEND_URL / CORS_ORIGIN / GOOGLE_CALLBACK_URL and Google's OAuth URIs.
      on 6 October stored 146 prices, three matched another source, and
      the count starts with that evening's scheduled run.
    - Scheduled runs start hours late on this repo (2-13 October: market
-     job 4h22m to 6h38m, backups 5h52m to 6h30m, the stale-price alert
+     job 4h22m to 6h38m, backups 5h19m to 6h30m, the stale-price alert
      6h54m to 9h14m; all passing). The trading-hours guard keeps a very
      late run from storing next-day intraday prices (it refuses only a
      start at 9:00am-4:30pm Lagos on a weekday). If runs are dropped or
