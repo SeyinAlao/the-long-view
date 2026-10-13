@@ -14,6 +14,9 @@ publish. Everyone sees what a thesis is. Reading never needs any of it.
   Since `2026-10-08` the same box declares the person is **18 or
   older**: a self-declaration, not verification (whether that is enough
   under the NDPA is a question for the lawyer).
+  Since `2026-10-13` section 7 of the Terms says what removal does
+  (date-only notice to the author, no reason on the page, email by hand
+  where practicable), matching the operator takedown (PR #66).
   The API refuses a sign-up without `acceptedTerms: true` (400) and
   stores `User.termsVersion` and `User.termsAcceptedAt`.
 - **Accepting later:** `/welcome/terms` (`POST /auth/accept-terms`) for

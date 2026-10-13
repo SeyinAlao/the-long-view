@@ -99,11 +99,18 @@ account, when:
   else's private information); or
 - it breaks section 6, including after a well-founded report.
 
-Hidden content is not deleted: we keep a record of it and of why it
-was hidden. Its page then says it was removed by the operator, and on
-what date and general ground, without showing the text. It no longer
-appears on the Ledger or counts on the Leaderboard. Where the law
-allows, we'll email the author to say what was hidden and why.
+Hidden content is not deleted: we keep a record of it. It no longer
+appears on the Ledger, isn't graded and doesn't count on the
+Leaderboard, and to everyone except its author its page doesn't
+exist. Its author sees a notice that it was removed by the operator,
+with the date and no reason. Where we practicably can, we tell the
+author privately by email why; we do this by hand, we don't promise
+it, and we don't state a ground on the page.
+
+> [Lawyer: this section is written to match what the site does and to
+> promise as little as possible. Please review it: whether notice to
+> the author, or a record of the reason, is required by law or an
+> order; and whether the date-only notice is enough.]
 
 To report content, write to [contact email], with the link and the
 reason.
