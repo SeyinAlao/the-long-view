@@ -60,7 +60,11 @@ export class AuthController {
   @Post('login')
   @RateLimit('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() dto: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  async login(
+    @Body() dto: LoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const { clientIp } = getEdgeInfo(req);
     this.limiter.assertAccountAllowed(dto.email, clientIp);
     try {
@@ -85,7 +89,10 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @UseGuards(OptionalJwtAuthGuard)
-  async logout(@CurrentUser() user: SafeUser | undefined, @Res({ passthrough: true }) res: Response) {
+  async logout(
+    @CurrentUser() user: SafeUser | undefined,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     if (user) await this.authService.endAllSessions(user.id);
     res.clearCookie(COOKIE_NAME, this.cookieOptions());
     return { success: true };
@@ -95,6 +102,17 @@ export class AuthController {
   @Get('me')
   me(@CurrentUser() user: SafeUser) {
     return { user };
+  }
+
+  // The accept step for anyone who hasn't accepted the current Terms:
+  // new Google users, accounts from before the checkpoint, and everyone
+  // after a version change (ADR 014).
+  @UseGuards(JwtAuthGuard)
+  @RateLimit('write')
+  @Post('accept-terms')
+  @HttpCode(HttpStatus.OK)
+  async acceptTerms(@CurrentUser() user: SafeUser) {
+    return { user: await this.authService.acceptTerms(user.id) };
   }
 
   // Passport's GoogleAuthGuard intercepts this request and redirects the
@@ -122,14 +140,22 @@ export class AuthController {
 
     try {
       const result = await this.authService.loginWithGoogle(profile);
-      if (result.outcome === 'refused') return res.redirect(`${frontendUrl}/login?error=google-link-refused`);
+      if (result.outcome === 'refused')
+        return res.redirect(`${frontendUrl}/login?error=google-link-refused`);
 
       this.setSessionCookie(res, result.accessToken);
       // The notice that Google replaced their password wins over going
       // back to where they were, so it is always seen.
-      if (result.passwordCleared) return res.redirect(`${frontendUrl}/dashboard?notice=google-now-sign-in`);
-      const next = safeNextPath((req.authInfo as { state?: OAuthAppState } | undefined)?.state?.next);
-      return res.redirect(`${frontendUrl}${next ?? '/dashboard'}`);
+      const next = result.passwordCleared
+        ? '/dashboard?notice=google-now-sign-in'
+        : (safeNextPath((req.authInfo as { state?: OAuthAppState } | undefined)?.state?.next) ??
+          '/dashboard');
+      // A new Google account, or one that hasn't accepted the current
+      // Terms, accepts them first and then carries on (ADR 014).
+      if (!result.user.termsAccepted) {
+        return res.redirect(`${frontendUrl}/welcome/terms?next=${encodeURIComponent(next)}`);
+      }
+      return res.redirect(`${frontendUrl}${next}`);
     } catch (error) {
       // Includes a write conflict while linking (Prisma P2034): the
       // transaction rolled back, so nothing changed and no session was

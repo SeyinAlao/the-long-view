@@ -1,18 +1,23 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useRegister, authErrorMessage } from '@/hooks/use-auth';
 import { GoogleButton } from './google-button';
 import { GoogleSignInError } from './google-sign-in-error';
 import { safeNextPath } from '@/lib/safe-next-path';
+import { TermsCheckbox } from '@/components/legal/terms-checkbox';
+import { MUST_AGREE } from '@/lib/legal';
 
 export function SignupForm() {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
+  const [agreed, setAgreed] = useState(false);
+  const [agreeError, setAgreeError] = useState<string | null>(null);
+  const agreeBox = useRef<HTMLInputElement>(null);
   const searchParams = useSearchParams();
   // Only ever a path on this site - see safeNextPath.
   const next = safeNextPath(searchParams.get('next'));
@@ -21,7 +26,14 @@ export function SignupForm() {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    register.mutate({ email, username, name, password });
+    // Unticked: say why and move focus to the box, rather than a disabled
+    // button that can't explain itself (ADR 014). The API checks it too.
+    if (!agreed) {
+      setAgreeError(MUST_AGREE);
+      agreeBox.current?.focus();
+      return;
+    }
+    register.mutate({ email, username, name, password, acceptedTerms: true });
   }
 
   return (
@@ -40,7 +52,9 @@ export function SignupForm() {
 
       <div className="my-6 flex items-center gap-3">
         <div className="h-px flex-1 bg-ink/15" />
-        <span className="text-[11px] uppercase tracking-[0.08em] text-muted">or continue with email</span>
+        <span className="text-[11px] uppercase tracking-[0.08em] text-muted">
+          or continue with email
+        </span>
         <div className="h-px flex-1 bg-ink/15" />
       </div>
 
@@ -107,8 +121,20 @@ export function SignupForm() {
           />
           {/* No maxLength: browsers count characters, not bytes, and would
               silently cut a pasted password short. The API checks it. */}
-          <p className="mt-1 text-xs text-muted">8 to 72 characters (fewer if you use emoji or accented letters).</p>
+          <p className="mt-1 text-xs text-muted">
+            8 to 72 characters (fewer if you use emoji or accented letters).
+          </p>
         </div>
+
+        <TermsCheckbox
+          checked={agreed}
+          onChange={(value) => {
+            setAgreed(value);
+            if (value) setAgreeError(null);
+          }}
+          error={agreeError}
+          inputRef={agreeBox}
+        />
 
         {register.isError && (
           <p className="text-sm text-terracotta-dark" role="alert">

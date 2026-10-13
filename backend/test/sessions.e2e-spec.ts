@@ -28,7 +28,7 @@ describe('Sessions (e2e)', () => {
   beforeEach(async () => {
     await request(app.getHttpServer())
       .post('/auth/register')
-      .send({ ...account, username: 'sessions', name: 'Sessions' })
+      .send({ acceptedTerms: true, ...account, username: 'sessions', name: 'Sessions' })
       .expect(201);
   });
 

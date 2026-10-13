@@ -54,6 +54,7 @@ export const config = {
     '/theses/new',
     '/theses/mine',
     '/theses/:id/edit',
+    '/welcome/terms',
     '/login',
     '/signup',
   ],

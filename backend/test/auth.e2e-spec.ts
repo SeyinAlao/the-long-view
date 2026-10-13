@@ -34,7 +34,7 @@ describe('Auth (e2e)', () => {
   it('rejects registration with a password under 8 characters', async () => {
     await request(app.getHttpServer())
       .post('/auth/register')
-      .send({ email: 'short@example.com', username: 'shortpw', password: '123', name: 'Short' })
+      .send({ acceptedTerms: true, email: 'short@example.com', username: 'shortpw', password: '123', name: 'Short' })
       .expect(400);
   });
 
@@ -44,7 +44,7 @@ describe('Auth (e2e)', () => {
     const register = (password: string, username: string) =>
       request(app.getHttpServer())
         .post('/auth/register')
-        .send({ email: `${username}@example.com`, username, password, name: 'Bytes' });
+        .send({ acceptedTerms: true, email: `${username}@example.com`, username, password, name: 'Bytes' });
 
     it('accepts exactly 72 bytes', async () => {
       await register('a'.repeat(72), 'bytes72').expect(201);
@@ -75,14 +75,14 @@ describe('Auth (e2e)', () => {
   it('rejects registration with an invalid email', async () => {
     await request(app.getHttpServer())
       .post('/auth/register')
-      .send({ email: 'not-an-email', username: 'bademail', password: 'correct-horse-battery', name: 'Bad Email' })
+      .send({ acceptedTerms: true, email: 'not-an-email', username: 'bademail', password: 'correct-horse-battery', name: 'Bad Email' })
       .expect(400);
   });
 
   it('registers a user, sets a session cookie, and never returns the password hash', async () => {
     const res = await request(app.getHttpServer())
       .post('/auth/register')
-      .send({
+      .send({ acceptedTerms: true,
         email: 'seyin@example.com',
         username: 'seyin',
         password: 'correct-horse-battery-staple',
@@ -99,19 +99,19 @@ describe('Auth (e2e)', () => {
   it('rejects a second registration with the same email', async () => {
     await request(app.getHttpServer())
       .post('/auth/register')
-      .send({ email: 'dup@example.com', username: 'dupone', password: 'correct-horse-battery', name: 'Dup One' })
+      .send({ acceptedTerms: true, email: 'dup@example.com', username: 'dupone', password: 'correct-horse-battery', name: 'Dup One' })
       .expect(201);
 
     await request(app.getHttpServer())
       .post('/auth/register')
-      .send({ email: 'dup@example.com', username: 'duptwo', password: 'correct-horse-battery', name: 'Dup Two' })
+      .send({ acceptedTerms: true, email: 'dup@example.com', username: 'duptwo', password: 'correct-horse-battery', name: 'Dup Two' })
       .expect(409);
   });
 
   it('logs in with the right password and rejects the wrong one', async () => {
     await request(app.getHttpServer())
       .post('/auth/register')
-      .send({
+      .send({ acceptedTerms: true,
         email: 'login@example.com',
         username: 'loginuser',
         password: 'the-real-password',
@@ -137,7 +137,7 @@ describe('Auth (e2e)', () => {
 
     const registerRes = await request(app.getHttpServer())
       .post('/auth/register')
-      .send({
+      .send({ acceptedTerms: true,
         email: 'me@example.com',
         username: 'meuser',
         password: 'correct-horse-battery',
@@ -156,7 +156,7 @@ describe('Auth (e2e)', () => {
   it('logout clears the session so /auth/me is blocked again', async () => {
     const registerRes = await request(app.getHttpServer())
       .post('/auth/register')
-      .send({
+      .send({ acceptedTerms: true,
         email: 'logout@example.com',
         username: 'logoutuser',
         password: 'correct-horse-battery',

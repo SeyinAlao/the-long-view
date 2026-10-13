@@ -12,7 +12,7 @@ describe('Email letter case (e2e)', () => {
   const register = (email: string, username: string) =>
     request(app.getHttpServer())
       .post('/auth/register')
-      .send({ email, username, password: 'correct-horse-battery', name: 'Ana Bello' });
+      .send({ acceptedTerms: true, email, username, password: 'correct-horse-battery', name: 'Ana Bello' });
 
   beforeAll(async () => {
     app = await createTestApp();

@@ -5,6 +5,8 @@ export interface Account {
   username: string;
   email: string;
   password: string;
+  // Sent as-is to /api/auth/register by the API helpers (ADR 014).
+  acceptedTerms: true;
 }
 
 let counter = 0;
@@ -14,7 +16,13 @@ let counter = 0;
 export function newAccount(label: string): Account {
   counter += 1;
   const username = `${label}_${counter}`;
-  return { name: `${label} Tester`, username, email: `${username}@example.com`, password: 'correct-horse-9' };
+  return {
+    name: `${label} Tester`,
+    username,
+    email: `${username}@example.com`,
+    password: 'correct-horse-9',
+    acceptedTerms: true,
+  };
 }
 
 // Through the real form - for tests where signing up is the point.
@@ -24,6 +32,7 @@ export async function signUpWithForm(page: Page, account: Account): Promise<void
   await page.getByLabel('Username').fill(account.username);
   await page.getByLabel('Email').fill(account.email);
   await page.getByLabel('Password').fill(account.password);
+  await page.getByRole('checkbox', { name: /I agree to the Terms of Service/ }).check();
   await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
 }

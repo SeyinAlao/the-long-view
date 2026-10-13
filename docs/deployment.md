@@ -62,6 +62,18 @@ The private repo's **"Stale price alert"** workflow runs each weekday at 8:47am 
 2. After 4:30pm Lagos on a weekday, run "Daily market jobs" by hand (Run workflow). Its "Updated" line should show about 146 securities and the day's NGX trade date.
 3. The next morning's alert run should pass.
 
+### Manual market runs: safe hours and refusals
+
+Run "Daily market jobs" by hand **only on a weekday, between 4:30pm and midnight Lagos time** (the scheduled run starts at 5:30pm, usually later). A stored close is never overwritten (one row per company per trading day), so the refresh refuses anything that could store a wrong one, writes nothing, and fails (exit 1, so the run fails and emails). There is no override. The messages, as they appear in the run's log after `Market data refresh failed:`:
+
+- `Refusing to refresh prices at <time> Lagos time on a weekday. NGX trades 9:00am-4:00pm ...`: 9:00am-4:30pm on a weekday. Nothing was fetched.
+- `NGX prices refused - writing nothing: N row(s) dated today (<date>) before 4:30pm Lagos, when the day's closing prices may not be final [...]`: before 9:00am, NGX's list showed today's date.
+- `NGX prices refused - writing nothing: N row(s) dated after today (<date> in Lagos) [...]`: a future date (a bad feed or a wrong clock).
+- `NGX prices refused - writing nothing: N row(s) dated on a Saturday or Sunday, when NGX does not trade [...]`.
+- The feed's own checks (`HTTP <status>`, `only N usable entries`, `required fields missing`, `newest trade date ... more than 5 days before`) also start `NGX prices refused - writing nothing:`.
+
+A refused run writes nothing, so it can't hide a gap: the stale-price alert counts days since the newest saved price, and the run itself fails. Run it again in the safe hours.
+
 ## Uptime monitor (G2)
 
 The API answers two health checks without the edge key:

@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import type { SafeUser } from './auth';
 import { BACKEND_URL, backendTimeoutSignal } from './backend-url';
 import { serverEdgeHeaders } from './edge-headers';
@@ -26,4 +27,18 @@ export async function getCurrentUserServer(): Promise<SafeUser | null> {
 
   const data = (await res.json()) as { user: SafeUser };
   return data.user;
+}
+
+// For pages where a person writes (the desk, the thesis form, their
+// research): signed in, and the current Terms accepted, or sent to do
+// that first and brought back to `path` afterwards (ADR 014). Reading a
+// published thesis needs neither.
+export async function requireWritingUser(path: string): Promise<SafeUser> {
+  const user = await getCurrentUserServer();
+  // The desk is where sign-in goes anyway, so it needs no ?next= (and
+  // e2e/tests/auth-safety.spec.ts tells the page's own redirect from
+  // proxy.ts's by that).
+  if (!user) redirect(path === '/dashboard' ? '/login' : `/login?next=${encodeURIComponent(path)}`);
+  if (!user.termsAccepted) redirect(`/welcome/terms?next=${encodeURIComponent(path)}`);
+  return user;
 }

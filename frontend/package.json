@@ -11,16 +11,18 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.9.1",
     "@tanstack/react-query": "^5.62.0",
     "boxicons": "^2.1.4",
+    "framer-motion": "^13.4.4",
     "next": "^16.3.8",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "zustand": "^5.0.2",
-    "framer-motion": "^13.4.4",
     "react-hook-form": "^7.89.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "zod": "^4.6.5",
-    "@hookform/resolvers": "^5.9.1"
+    "zustand": "^5.0.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",

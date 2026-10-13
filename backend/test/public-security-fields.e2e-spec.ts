@@ -26,7 +26,7 @@ describe('Company fields in API responses (e2e)', () => {
 
     const registered = await request(app.getHttpServer())
       .post('/auth/register')
-      .send({ email: 'fields@example.com', username: 'fields_author', password: 'correct-horse-battery', name: 'Fields' });
+      .send({ acceptedTerms: true, email: 'fields@example.com', username: 'fields_author', password: 'correct-horse-battery', name: 'Fields' });
     const cookie = registered.headers['set-cookie'];
     const created = await request(app.getHttpServer())
       .post('/theses')
@@ -40,7 +40,7 @@ describe('Company fields in API responses (e2e)', () => {
       })
       .expect(201);
     thesisId = created.body.id;
-    await request(app.getHttpServer()).post(`/theses/${thesisId}/publish`).set('Cookie', cookie).expect(201);
+    await request(app.getHttpServer()).post(`/theses/${thesisId}/publish`).send({ confirmed: true }).set('Cookie', cookie).expect(201);
   });
 
   afterAll(async () => {

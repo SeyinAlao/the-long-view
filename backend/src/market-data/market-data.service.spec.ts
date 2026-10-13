@@ -35,6 +35,8 @@ describe('MarketDataService.refreshPrices', () => {
     ['an error status', feed(manyRows(), 403)],
     ['a body that is not a list of prices', { ...feed([]), body: undefined }],
     ['a frozen feed (newest trade date 6+ days old)', feed(manyRows().map((r) => ({ ...r, TradeDate: '2026-10-01T00:00:00' })))],
+    ['a weekend trade date', feed(manyRows().map((r) => ({ ...r, TradeDate: '2026-10-04T00:00:00' })))],
+    ['a future trade date', feed(manyRows().map((r) => ({ ...r, TradeDate: '2026-10-08T00:00:00' })))],
   ])('refuses %s without touching the database', async (_, response) => {
     const { prisma, service } = setUp();
     jest.spyOn(service, 'fetchFeed').mockResolvedValue(response);

@@ -1,4 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion';
+import type { ReactNode } from 'react';
 import { apiErrorMessage } from '@/lib/api';
 
 interface ThesisFormActionsProps {
@@ -9,6 +10,8 @@ interface ThesisFormActionsProps {
   isPublishing: boolean;
   isError: boolean;
   error: unknown;
+  // The publish confirmation (PublishConfirmation), shown above the buttons.
+  confirmation: ReactNode;
 }
 
 export function ThesisFormActions({
@@ -19,11 +22,13 @@ export function ThesisFormActions({
   isPublishing,
   isError,
   error,
+  confirmation,
 }: ThesisFormActionsProps) {
   const shouldReduceMotion = useReducedMotion();
 
   return (
     <>
+      {confirmation}
       {isError && (
         <p className="text-sm text-terracotta-dark" role="alert">
           {apiErrorMessage(error)}

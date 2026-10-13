@@ -2,7 +2,7 @@ import { test, expect } from '../support/fixtures';
 import type { Page } from '@playwright/test';
 import { addPrice } from '../support/db';
 import { newAccount, signUpWithApi } from '../support/accounts';
-import { fillThesis, statementFor } from '../support/thesis-form';
+import { fillThesis, statementFor, publishFromForm } from '../support/thesis-form';
 
 // The backend's exact words (theses.service.ts), shown as they come.
 const NO_PRICE_MESSAGE =
@@ -11,7 +11,7 @@ const NO_PRICE_MESSAGE =
   'Your draft is saved; try again after the next daily price update.';
 
 async function publishAndExpectRefusal(page: Page) {
-  await page.getByRole('button', { name: 'Publish thesis' }).click();
+  await publishFromForm(page);
   // filter(): Next.js also renders an empty role="alert" route announcer.
   await expect(page.getByRole('alert').filter({ hasText: NO_PRICE_MESSAGE })).toHaveText(NO_PRICE_MESSAGE);
 }
@@ -40,7 +40,7 @@ test('publishing is refused without a recent real price, and succeeds with one',
 
   await addPrice('MTNN', 262);
   await openTheDraft(page);
-  await page.getByRole('button', { name: 'Publish thesis' }).click();
+  await publishFromForm(page);
   await expect(page.getByRole('heading', { name: 'Locked. The record is keeping time.' })).toBeVisible();
 
   await page.goto('/theses/mine');

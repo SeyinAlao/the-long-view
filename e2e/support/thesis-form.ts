@@ -23,6 +23,12 @@ export async function fillThesis(
   await page.getByLabel('Target price').fill(String(targetPrice));
 }
 
+// Ticks the publish confirmation (ADR 014), then publishes.
+export async function publishFromForm(page: Page): Promise<void> {
+  await page.getByRole('checkbox', { name: /published as my own opinion/ }).check();
+  await page.getByRole('button', { name: 'Publish thesis' }).click();
+}
+
 export async function saveDraft(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Save private draft' }).click();
   await expect(page.getByText('Saved as a private draft')).toBeVisible();

@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { assertOutsideTradingWindow } from './trading-hours';
 import { fetchNgxEquities, type FeedResponse } from './ngx-equities-source';
 import { assessFeed } from './feed-checks';
+import { assertTradeDatesStorable } from './trade-date-guard';
 
 @Injectable()
 export class MarketDataService {
@@ -25,9 +26,7 @@ export class MarketDataService {
   // company that already has a close for that day is left alone (one row
   // per company per trading day), so a second run never overwrites a
   // stored close. `now` is a parameter so tests can fix the clock.
-  async refreshPrices(
-    now: Date = new Date(),
-  ): Promise<{
+  async refreshPrices(now: Date = new Date()): Promise<{
     updated: number;
     alreadyStored: number;
     skippedUnrecognized: number;
@@ -35,6 +34,9 @@ export class MarketDataService {
   }> {
     assertOutsideTradingWindow(now);
     const { prices, tradeDate } = assessFeed(await this.fetchFeed(), now);
+    // Before any write: today before 4:30pm, future and weekend dates
+    // refuse the whole run (trade-date-guard.ts).
+    assertTradeDatesStorable(prices, now);
 
     const knownSecurities = await this.prisma.security.findMany({ take: 1000 });
     const known = new Map(knownSecurities.map((s) => [s.ticker, s]));

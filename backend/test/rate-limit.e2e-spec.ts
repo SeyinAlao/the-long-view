@@ -108,7 +108,7 @@ describe('Rate limits, with the edge key enforced (e2e)', () => {
       await request(app.getHttpServer())
         .post('/auth/register')
         .set(edge())
-        .send({ email: 'ada@example.com', username: 'ada', password: PASSWORD, name: 'Ada' })
+        .send({ acceptedTerms: true, email: 'ada@example.com', username: 'ada', password: PASSWORD, name: 'Ada' })
         .expect(201);
 
       for (let i = 0; i < ACCOUNT_FAILURES.limit; i++) {
@@ -138,7 +138,7 @@ describe('Rate limits, with the edge key enforced (e2e)', () => {
       await request(app.getHttpServer())
         .post('/auth/register')
         .set(edge())
-        .send({ email: 'cleo@example.com', username: 'cleo', password: PASSWORD, name: 'Cleo' })
+        .send({ acceptedTerms: true, email: 'cleo@example.com', username: 'cleo', password: PASSWORD, name: 'Cleo' })
         .expect(201);
       for (let i = 0; i < ACCOUNT_FAILURES.limit - 1; i++) await login(edge(), 'cleo@example.com').expect(401);
       await login(edge(), 'cleo@example.com', PASSWORD).expect(200);
@@ -168,7 +168,7 @@ describe('Rate limits, with the edge key enforced (e2e)', () => {
       await request(app.getHttpServer())
         .post('/auth/register')
         .set(edge())
-        .send({ email: 'dana.secret@example.com', username: 'dana', password: PASSWORD, name: 'Dana' })
+        .send({ acceptedTerms: true, email: 'dana.secret@example.com', username: 'dana', password: PASSWORD, name: 'Dana' })
         .expect(201);
       const signedIn = await login(edge('198.51.104.1'), 'dana.secret@example.com', PASSWORD).expect(200);
       const token = /session_token=([^;]+)/.exec(String(signedIn.headers['set-cookie']))![1];

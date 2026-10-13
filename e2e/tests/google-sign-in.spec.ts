@@ -9,7 +9,7 @@ import { createThesis } from '../support/theses-api';
 // (support/fake-google.mjs): the state cookie is set by /api/auth/google
 // through the frontend's rewrite, must come back on Google's redirect to
 // /api/auth/google/callback (Path=/), and the person lands where they
-// started.
+// started, after accepting the Terms if the account is new.
 const fakeGoogle = async (request: APIRequestContext, query = '') => {
   const res = await request.post(`${FAKE_GOOGLE_URL}/__fake-google?${query}`);
   expect(res.ok(), await res.text()).toBe(true);
@@ -35,6 +35,11 @@ test('Google sign-in from a thesis page comes back to that thesis, signed in', a
 
   await page.goto(`/login?next=/theses/${thesisId}`);
   await page.getByRole('link', { name: 'Continue with Google' }).click();
+
+  // A new Google account accepts the Terms first, then carries on (ADR 014).
+  await expect(page).toHaveURL(new RegExp(`/welcome/terms\\?next=%2Ftheses%2F${thesisId}$`));
+  await page.getByRole('checkbox', { name: /I agree to the Terms of Service/ }).check();
+  await page.getByRole('button', { name: 'Agree and continue' }).click();
 
   await expect(page).toHaveURL(new RegExp(`/theses/${thesisId}$`));
   await expect(page.locator('header').getByRole('button', { name: 'Sign out' })).toBeVisible();

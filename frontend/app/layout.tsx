@@ -4,6 +4,7 @@ import 'boxicons/css/boxicons.min.css';
 import './globals.css';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { SiteHeader } from '@/components/site-header';
+import { SiteFooter } from '@/components/site-footer';
 
 const instrumentSerif = Instrument_Serif({
   subsets: ['latin'],
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <QueryProvider>
           <SiteHeader />
           {children}
+          <SiteFooter />
         </QueryProvider>
       </body>
     </html>
