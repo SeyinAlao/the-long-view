@@ -16,7 +16,9 @@
     "market-data:check": "ts-node scripts/check-ngx-feed.ts",
     "market-data:freshness": "ts-node scripts/check-price-freshness.ts",
     "evaluate:pending": "ts-node scripts/evaluate-pending-theses.ts",
-    "db:check-pooler": "ts-node scripts/check-pooler-serializable.ts"
+    "db:check-pooler": "ts-node scripts/check-pooler-serializable.ts",
+    "content:hide": "ts-node scripts/takedown-thesis.ts hide",
+    "content:unhide": "ts-node scripts/takedown-thesis.ts unhide"
   },
   "dependencies": {
     "@nestjs/common": "^11.2.7",

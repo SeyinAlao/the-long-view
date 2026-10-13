@@ -357,6 +357,25 @@ Don't use a schema-only branch for the clean production database: it starts with
 
 If a schema-only branch is used anyway, baseline it with steps 1-5 above, listing **all** migrations that exist at that point.
 
+## Hiding a thesis (the operator's takedown)
+
+Terms, section 7. A hidden thesis is kept, never deleted, and behaves as if it were not there: it is not graded (evaluation skips it), not in the Ledger, `/theses`, the Leaderboard or anyone's totals, and `GET /theses/:id` is a 404 for everyone except its author, who is told "Removed by the operator on <date>" and never the reason. Nobody can counter it. Unhiding undoes all of it, and it is then graded on the first close on or after its own due date. The reason is stored but never returned by the API.
+
+**Needs migration `20261007180000_thesis_hidden` on the database first** ("Thesis hidden columns" above). From `backend/`, in PowerShell:
+
+1. **Host check.** Load the target's **direct** URL into this window only (`$env:DIRECT_URL = "<direct connection string>"`) and check the host. The script never loads `backend/.env`, which is production.
+2. **Snapshot** the Neon branch first (Neon console), since the next step writes.
+3. **Dry run** (writes nothing; prints the host and what it would do):
+   ```
+   npm run content:hide -- <thesis id> <reason>
+   ```
+   The reason is a code of 3-60 lower-case letters, digits and underscores, for example `seed_placeholder_price`, so nothing personal reaches a log. Only published theses can be hidden.
+4. **Apply** by adding `--write`. The script writes to `localhost`, `127.0.0.1` and staging's direct host without asking; any other host (production, a pooled host) is refused unless you add `--confirm-host=<that exact host>`.
+5. **Check:** `& $psql $env:DIRECT_URL -f prisma\checks\hidden-theses.sql` lists what is hidden, with the reasons. To undo: `npm run content:unhide -- <thesis id> --write`.
+6. `Remove-Item Env:\DIRECT_URL`.
+
+It logs the host, thesis id and reason only. The Ledger and Leaderboard are cached pages, so a change shows within a minute (Ledger) or five (Leaderboard).
+
 ## Google account linking through Neon's pooler (staging trial)
 
 Linking a Google sign-in to an existing account runs a **Serializable** transaction (ADR 003). The tests use a direct local database; the live API uses Neon's **pooled** URL. Neon's pooler is PgBouncer in transaction mode, which holds one server connection from `BEGIN` to `COMMIT`; its documented limits are session-level (`SET`/`RESET`, `LISTEN`, SQL `PREPARE`, session advisory locks). Prisma's pg adapter (7.10) starts the transaction with `BEGIN`, then `SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`, which is transaction-scoped. So it should work; this confirms it on staging, harmlessly:

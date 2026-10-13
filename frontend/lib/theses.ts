@@ -69,6 +69,10 @@ export interface Thesis {
   outcome?: ThesisOutcome | null;
   publishedAt: string | null;
   createdAt: string;
+  // Set when the operator has removed the thesis (Terms, section 7). The
+  // API tells only its author, and never says why; the detail response
+  // then carries nothing else about the thesis.
+  hiddenAt?: string | null;
 }
 
 export interface CreateCounterThesisInput {

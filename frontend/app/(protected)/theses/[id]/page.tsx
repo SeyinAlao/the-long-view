@@ -4,6 +4,7 @@ import { getThesisServer } from '@/lib/server-theses';
 import { CounterThesesSection } from '@/components/theses/counter-theses-section';
 import { ThesisOutcomeCard } from '@/components/theses/thesis-outcome-card';
 import { DISCLAIMER } from '@/lib/legal';
+import { RemovedNotice } from '@/components/theses/removed-notice';
 
 // Plain helper, not a component — Date.now() here doesn't trip React's
 // purity rule the way calling it directly inside a component body
@@ -26,6 +27,17 @@ export default async function ThesisDetailPage({ params }: { params: Promise<{ i
 
   if (!thesis) {
     notFound();
+  }
+
+  // Removed by the operator: the API sends this only to the author, as a
+  // bare record with no content and no reason.
+  if (thesis.hiddenAt) {
+    return (
+      <main className="mx-auto min-h-screen max-w-2xl px-5 py-10 sm:px-8 sm:py-16">
+        <h1 className="font-display text-3xl leading-tight sm:text-4xl">Thesis removed</h1>
+        <RemovedNotice hiddenAt={thesis.hiddenAt} />
+      </main>
+    );
   }
 
   // A draft has no business being shown on a "here's a locked public

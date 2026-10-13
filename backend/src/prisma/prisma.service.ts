@@ -15,7 +15,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     const adapter = new PrismaPg({
       connectionString: process.env.DATABASE_URL,
     });
-    super({ adapter });
+    // The operator's reason for hiding a thesis is never part of any
+    // API response: it is left out of every Thesis query unless that
+    // query asks for it (`omit: { hiddenReason: false }`, as the takedown
+    // does). Safer than remembering to leave it out of each response.
+    super({ adapter, omit: { thesis: { hiddenReason: true } } });
   }
 
   async onModuleInit() {

@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { firstPriceOnOrAfter } from '../market-data/price-history';
 
@@ -66,8 +67,12 @@ export class EvaluationService {
   // The whole point of the Price table existing since Phase 5 — this is
   // the first place it actually gets read back, not just written to.
   async evaluatePendingTheses(): Promise<{ evaluated: number; stillPending: number }> {
+    // A hidden thesis is never graded: no outcome row is created for it,
+    // so nothing can ever show it as a score. Unhiding makes it eligible
+    // again. It is graded on its own due-date close (firstPriceOnOrAfter
+    // below), never on the close of the day it was unhidden.
     const candidates = await this.prisma.thesis.findMany({
-      where: { status: 'ACTIVE' },
+      where: { status: 'ACTIVE', hiddenAt: null },
     });
 
     let evaluated = 0;
@@ -110,21 +115,31 @@ export class EvaluationService {
       // Both writes happen together or not at all - a thesis marked
       // EVALUATED with no outcome record (or vice versa) would be a
       // genuinely confusing, hard-to-recover state.
-      await this.prisma.$transaction([
-        this.prisma.thesisOutcome.create({
-          data: {
-            thesisId: thesis.id,
-            evaluationPrice: outcome.evaluationPrice,
-            targetReturn: outcome.targetReturn,
-            actualReturn: outcome.actualReturn,
-            outcomeScore: outcome.outcomeScore,
-          },
-        }),
-        this.prisma.thesis.update({
-          where: { id: thesis.id },
-          data: { status: 'EVALUATED' },
-        }),
-      ]);
+      // Conditioned on the thesis still not being hidden: one hidden
+      // after the list above was read matches nothing, the update throws
+      // P2025, and the outcome insert is rolled back with it.
+      try {
+        await this.prisma.$transaction([
+          this.prisma.thesisOutcome.create({
+            data: {
+              thesisId: thesis.id,
+              evaluationPrice: outcome.evaluationPrice,
+              targetReturn: outcome.targetReturn,
+              actualReturn: outcome.actualReturn,
+              outcomeScore: outcome.outcomeScore,
+            },
+          }),
+          this.prisma.thesis.update({
+            where: { id: thesis.id, hiddenAt: null },
+            data: { status: 'EVALUATED' },
+          }),
+        ]);
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+          continue;
+        }
+        throw error;
+      }
 
       evaluated += 1;
     }
