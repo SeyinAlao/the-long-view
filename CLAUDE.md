@@ -147,7 +147,12 @@ at staging. The test backend always runs with `DISABLE_SCHEDULED_JOBS=true`.
   and accepts the risk until it answers, on four conditions (ADR 012):
   don't add requests, keep the User-Agent honest, show "Source: NGX,
   prices as of <date>" before the public stage, and never republish
-  NGX's full price list. So a company in any API response has only
+  NGX's full price list. No NGX document covers this endpoint and none
+  offers a free or non-commercial licence; its paid ones start at a
+  Website End of Day licence of NGN 120,000 a year plus VAT (Pricelist,
+  read 13 October 2026), so any spending needs Seyin's explicit
+  approval and waits for NGX's reply and a lawyer (ADR 012). So a
+  company in any API response has only
   `PUBLIC_SECURITY_FIELDS` (id, ticker, companyName), selected in the
   query; never return `currentPrice` or `previousPrice`. The company
   search offers only companies with at least one Price row.
@@ -195,9 +200,11 @@ FRONTEND_URL / CORS_ORIGIN / GOOGLE_CALLBACK_URL and Google's OAuth URIs.
      failed (NGX's page changed; fixed by PR #42, ADR 012). A manual run
      on 6 October stored 146 prices, three matched another source, and
      the count starts with that evening's scheduled run.
-   - Scheduled runs start hours late on this repo (market job 4h22m on
-     2 October; backups 5-6h on 3-4 October, both passing); the trading-hours guard keeps a very late
-     run from storing next-day intraday prices. If runs are dropped or
+   - Scheduled runs start hours late on this repo (2-13 October: market
+     job 4h22m to 6h38m, backups 5h52m to 6h30m, the stale-price alert
+     6h54m to 9h14m; all passing). The trading-hours guard keeps a very
+     late run from storing next-day intraday prices (it refuses only a
+     start at 9:00am-4:30pm Lagos on a weekday). If runs are dropped or
      keep slipping, trigger workflow_dispatch from cron-job.org instead.
 2. **Pre-launch audit and launch gate** - started 5 October 2026, as a
    senior security analyst, timeboxed to a week as a target. The report is
@@ -251,7 +258,7 @@ FRONTEND_URL / CORS_ORIGIN / GOOGLE_CALLBACK_URL and Google's OAuth URIs.
 - Go-live items: clean production database, Neon password reset, publish the
   Google consent screen, Vercel Web Analytics, switch the jobs repo's secrets.
 - Scheduled jobs: a week of price checks against NGX closes; cron-job.org
-  fallback if runs keep slipping (first runs were 4-6 h late).
+  fallback if runs keep slipping (4.5 to 9 h late so far).
 - Trading-hours guard doesn't know NGX public holidays (harmless: a manual
   run on a weekday holiday just has to wait until 4:30pm).
 - Back/forward cache: headless Chromium reloads rather than restores pages,

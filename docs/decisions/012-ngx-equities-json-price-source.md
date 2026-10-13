@@ -69,6 +69,31 @@ that day.
   - Neither host serves a `robots.txt` (404 on both, 6 October). For
     `ngxgroup.com`, which blocks plain requests, that 404 may come from
     its bot protection rather than proving none exists.
+  - **What NGX's market data documents say** (Pricelist, Market Data
+    Policy, End User and Distributors agreements, Historical Data
+    Policy, Usage Form; read 13 October 2026, not legal advice):
+    - None of them mentions this endpoint. The licences cover data
+      received from an authorised distributor; the only rule that
+      reaches our collection is the website terms above.
+    - No free, non-commercial or educational licence exists. Paid
+      ones are annual plus 7.5% VAT: Website/Mobile End of Day licence
+      NGN 120,000 or US$1,000; distributor End of Day licence
+      NGN 1,500,000 or US$10,000; external distribution NGN 400,000 or
+      US$1,500 per firm (Pricelist 1.1, 1.2, 3.2). How an end-of-day
+      licence is delivered is not stated.
+    - Showing closes on a public site takes NGX's usage form and
+      approval before display, and a signed Market Data Agreement
+      (Policy 8.2.1); a website notice against copying and scraping
+      (8.2.7); and NGX's acknowledgement (End User Agreement 11.13).
+    - Derived data (our percentage moves and graded outcomes) counts
+      as Market Data if the underlying close can be worked out from it
+      (Policy 6.2).
+    - These documents are about display and redistribution, which the
+      four conditions below do not cover. Whether they apply to a free
+      site that takes nothing from NGX's feeds is a question for a
+      lawyer, and for NGX.
+  - **Asked 7 October 2026**, by email to NGX's contact centre; no
+    reply by 13 October. A follow-up to the market data desks follows.
   - **Decided 6 October 2026 (Seyin):** ask NGX in writing for
     permission (non-commercial use, one request per weekday on a
     schedule, plus occasional manual test runs during development). Until NGX
@@ -82,8 +107,11 @@ that day.
 
     Before the public stage there must be either NGX's written consent
     or this acceptance with all four conditions met. A refusal from NGX
-    reopens the decision (licensed data, for example NGX's
-    X-DataPortal, or another source).
+    reopens the decision: a licence under NGX's Market Data Agreement
+    (above; any spending needs Seyin's explicit approval, because of the
+    no-spend rule) or another source. NGX's price list files its Market
+    Data Portal under dealing members, so X-DataPortal is not assumed to
+    be a way to show prices on a website.
 - **GitHub's runners** might be refused where a laptop isn't. Plan B
   is below.
 
