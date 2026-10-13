@@ -67,6 +67,11 @@ at staging. The test backend always runs with `DISABLE_SCHEDULED_JOBS=true`.
 
 ## Key rules in the code (don't regress these)
 
+- A thesis the operator hid (`Thesis.hiddenAt`, Terms section 7,
+  docs/deployment.md "Hiding a thesis") is never graded, scored or
+  listed, is a 404 to everyone but its author, and its reason is never
+  returned: the Prisma client omits `hiddenReason` unless a query asks
+  for it. Only `scripts/takedown-thesis.ts` hides or unhides.
 - Published theses are immutable - no edits, no deletes. Drafts can change
   anything, including the company.
 - Reference price = latest row in the `Price` history, at most 7 days old;
