@@ -5,7 +5,9 @@
 // PR as the documents, and only for a change people need to agree to.
 // 2026-10-08: adds the age declaration (18 or older) to the agreement,
 // so every account accepts once more.
-export const TERMS_VERSION = '2026-10-08';
+// 2026-10-13: section 7 says what removal does and promises no reason
+// on the page or in an email, so every account accepts once more.
+export const TERMS_VERSION = '2026-10-13';
 
 export function hasAcceptedCurrentTerms(user: { termsVersion: string | null }): boolean {
   return user.termsVersion === TERMS_VERSION;
