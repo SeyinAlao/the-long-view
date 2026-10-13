@@ -21,17 +21,18 @@ test('sign-up needs the Terms box: unticked, it explains, moves focus to the box
   await expect(box).not.toBeChecked();
 
   await page.getByRole('button', { name: 'Create account' }).click();
-  await expect(page.getByRole('alert').filter({ hasText: 'Tick the box to agree' })).toBeVisible();
+  await expect(page.getByRole('alert').filter({ hasText: 'Tick the box to confirm you' })).toBeVisible();
   await expect(box).toBeFocused();
   await expect(page).toHaveURL(/\/signup$/);
   await expectNoAxeViolations(page, 'sign-up, Terms not ticked');
 
-  // The label links both documents and says what a thesis is.
+  // The label declares the age, links both documents and says what a thesis is.
+  await expect(page.getByText("I'm 18 or older.", { exact: false })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Terms of Service' }).first()).toHaveAttribute('href', '/terms');
   await expect(page.getByText(DISCLAIMER).first()).toBeVisible();
 
   await box.check();
-  await expect(page.getByRole('alert').filter({ hasText: 'Tick the box to agree' })).toHaveCount(0);
+  await expect(page.getByRole('alert').filter({ hasText: 'Tick the box to confirm you' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
 });
@@ -55,7 +56,7 @@ test('an account without the current Terms accepts them first, then carries on t
   await expectNoAxeViolations(page, 'accept step');
 
   await page.getByRole('button', { name: 'Agree and continue' }).click();
-  await expect(page.getByRole('alert').filter({ hasText: 'Tick the box to agree' })).toBeVisible();
+  await expect(page.getByRole('alert').filter({ hasText: 'Tick the box to confirm you' })).toBeVisible();
   await expect(page.getByRole('checkbox', { name: /I agree to the Terms of Service/ })).toBeFocused();
   await expectNoAxeViolations(page, 'accept step, not ticked');
 

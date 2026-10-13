@@ -11,6 +11,9 @@ publish. Everyone sees what a thesis is. Reading never needs any of it.
   page's footer, under the title of every thesis page, on the thesis
   form and in the sign-up checkbox's label (`frontend/lib/legal.ts`).
 - **Sign-up:** a required, unticked checkbox linking both documents.
+  Since `2026-10-08` the same box declares the person is **18 or
+  older**: a self-declaration, not verification (whether that is enough
+  under the NDPA is a question for the lawyer).
   The API refuses a sign-up without `acceptedTerms: true` (400) and
   stores `User.termsVersion` and `User.termsAcceptedAt`.
 - **Accepting later:** `/welcome/terms` (`POST /auth/accept-terms`) for

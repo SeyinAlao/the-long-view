@@ -17,7 +17,13 @@ describe('Terms acceptance (e2e)', () => {
   const register = (body: Record<string, unknown>) =>
     server()
       .post('/auth/register')
-      .send({ email: 'new@example.com', username: 'new_terms', password: PASSWORD, name: 'New', ...body });
+      .send({
+        email: 'new@example.com',
+        username: 'new_terms',
+        password: PASSWORD,
+        name: 'New',
+        ...body,
+      });
 
   // An account from before the checkpoint (null) or after a version change.
   async function signedInWithTerms(termsVersion: string | null): Promise<string[]> {
@@ -30,7 +36,10 @@ describe('Terms acceptance (e2e)', () => {
         termsVersion,
       },
     });
-    const res = await server().post('/auth/login').send({ email: 'old@example.com', password: PASSWORD }).expect(200);
+    const res = await server()
+      .post('/auth/login')
+      .send({ email: 'old@example.com', password: PASSWORD })
+      .expect(200);
     return res.headers['set-cookie'] as unknown as string[];
   }
 
@@ -54,10 +63,15 @@ describe('Terms acceptance (e2e)', () => {
   afterAll(() => app.close());
 
   describe('sign-up', () => {
-    it.each([[{}], [{ acceptedTerms: false }], [{ acceptedTerms: 'yes' }]])('refuses %p without agreeing, saying why', async (body) => {
-      const res = await register(body).expect(400);
-      expect(res.body.message).toContainEqual(expect.stringContaining('agree to the Terms of Service'));
-    });
+    it.each([[{}], [{ acceptedTerms: false }], [{ acceptedTerms: 'yes' }]])(
+      'refuses %p without agreeing, saying why',
+      async (body) => {
+        const res = await register(body).expect(400);
+        expect(res.body.message).toContainEqual(
+          expect.stringContaining('confirm you are 18 or older and agree to the Terms of Service'),
+        );
+      },
+    );
 
     it('records the version and time when agreeing, and reports it as accepted', async () => {
       const res = await register({ acceptedTerms: true }).expect(201);
@@ -72,6 +86,7 @@ describe('Terms acceptance (e2e)', () => {
     it.each([
       ['from before the checkpoint', null],
       ['after a version change', '2000-01-01'],
+      ['that accepted 2026-10-07, before the age declaration', '2026-10-07'],
     ])('%s: can read, but every write is refused until they accept', async (_, version) => {
       const cookie = await signedInWithTerms(version);
 
@@ -90,12 +105,16 @@ describe('Terms acceptance (e2e)', () => {
     it('every write route is guarded: edit, publish, counter and discard too', async () => {
       const author = await signedInWithTerms(TERMS_VERSION);
       const id = (await draft(author).expect(201)).body.id;
-      await prisma.user.update({ where: { email: 'old@example.com' }, data: { termsVersion: null } });
+      await prisma.user.update({
+        where: { email: 'old@example.com' },
+        data: { termsVersion: null },
+      });
 
       // Built when sent: a supertest request made early loses its server.
       for (const call of [
         () => server().patch(`/theses/${id}`).set('Cookie', author).send({ conviction: 7 }),
-        () => server().post(`/theses/${id}/publish`).set('Cookie', author).send({ confirmed: true }),
+        () =>
+          server().post(`/theses/${id}/publish`).set('Cookie', author).send({ confirmed: true }),
         () =>
           server()
             .post(`/theses/${id}/counter`)
@@ -121,10 +140,18 @@ describe('Terms acceptance (e2e)', () => {
       try {
         const id = (await draft(cookie).expect(201)).body.id;
         for (const body of [{}, { confirmed: false }]) {
-          const res = await server().post(`/theses/${id}/publish`).set('Cookie', cookie).send(body).expect(400);
+          const res = await server()
+            .post(`/theses/${id}/publish`)
+            .set('Cookie', cookie)
+            .send(body)
+            .expect(400);
           expect(res.body.message).toContainEqual(expect.stringContaining('not investment advice'));
         }
-        await server().post(`/theses/${id}/publish`).set('Cookie', cookie).send({ confirmed: true }).expect(201);
+        await server()
+          .post(`/theses/${id}/publish`)
+          .set('Cookie', cookie)
+          .send({ confirmed: true })
+          .expect(201);
       } finally {
         await prisma.price.delete({ where: { id: price.id } });
       }
