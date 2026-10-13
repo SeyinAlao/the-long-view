@@ -14,7 +14,9 @@ export class CounterThesesService {
     if (!thesis) {
       throw new NotFoundException(`Thesis ${thesisId} not found`);
     }
-    if (thesis.status === 'DRAFT') {
+    // A draft, or a thesis the operator has hidden: to everyone it
+    // doesn't exist, so nothing can be countered.
+    if (thesis.status === 'DRAFT' || thesis.hiddenAt) {
       throw new NotFoundException(`Thesis ${thesisId} not found`);
     }
     if (thesis.authorId === authorId) {

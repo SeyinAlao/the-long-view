@@ -77,6 +77,10 @@ export class LeaderboardService {
 
   async getLeaderboard(): Promise<LeaderboardEntry[]> {
     const outcomes = await this.prisma.thesisOutcome.findMany({
+      // An outcome on a hidden thesis counts for nobody: not in anyone's
+      // total, count or hit rate. (Hiding after grading is the case this
+      // covers; a hidden thesis is not graded at all.)
+      where: { thesis: { hiddenAt: null } },
       include: {
         // select, not include, for the author — same rule as everywhere
         // else a response touches the User model: never able to leak

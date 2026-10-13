@@ -175,6 +175,8 @@ export class ThesesService {
     return this.prisma.thesis.findMany({
       where: {
         status: { in: ['ACTIVE', 'EVALUATED'] },
+        // The Ledger and every public list: a hidden thesis is not there.
+        hiddenAt: null,
         security: options.ticker ? { ticker: options.ticker.toUpperCase() } : undefined,
       },
       orderBy: { publishedAt: 'desc' },
@@ -207,6 +209,22 @@ export class ThesesService {
     // itself information a stranger shouldn't get.
     if (thesis.status === 'DRAFT' && thesis.authorId !== requesterId) {
       throw new NotFoundException(`Thesis ${id} not found`);
+    }
+
+    // Hidden by the operator (takedown): its author is told, in neutral
+    // words, with no content and never the reason; everyone else gets the
+    // same 404 as for a thesis that doesn't exist.
+    if (thesis.hiddenAt) {
+      if (thesis.authorId !== requesterId) {
+        throw new NotFoundException(`Thesis ${id} not found`);
+      }
+      return {
+        id: thesis.id,
+        status: thesis.status,
+        hiddenAt: thesis.hiddenAt,
+        author: thesis.author,
+        security: thesis.security,
+      };
     }
 
     return thesis;
