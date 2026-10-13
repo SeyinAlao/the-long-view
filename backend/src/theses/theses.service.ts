@@ -18,6 +18,12 @@ import { isRecentEnough, latestPrice as latestPriceFor } from '../market-data/pr
 // if the User model ever grows a new field.
 const STILL_DRAFT = { status: 'DRAFT' } as const;
 
+// The reference price is a closing price from NGX. It is shown beside
+// one thesis (the detail page), never in a list: no list screen uses it,
+// and a public list of them would hand out a price per thesis to anyone
+// (ADR 012, "no republishing"). Single-thesis responses keep it.
+const NO_REFERENCE_PRICE = { referencePrice: true } as const;
+
 const THESIS_INCLUDE = {
   metrics: true,
   security: { select: PUBLIC_SECURITY_FIELDS },
@@ -181,6 +187,7 @@ export class ThesesService {
       skip: options.skip ?? 0,
       take,
       include: THESIS_INCLUDE,
+      omit: NO_REFERENCE_PRICE,
     });
   }
 
@@ -189,6 +196,7 @@ export class ThesesService {
       where: { authorId },
       orderBy: { createdAt: 'desc' },
       include: THESIS_INCLUDE,
+      omit: NO_REFERENCE_PRICE,
     });
   }
 

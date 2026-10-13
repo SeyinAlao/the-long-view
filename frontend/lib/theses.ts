@@ -50,7 +50,9 @@ export interface Thesis {
   security: { ticker: string; companyName: string };
   author: { id: string; username: string; name: string };
   targetPrice: string;
-  referencePrice: string | null;
+  // Only on a single thesis (the detail page and the create, update and
+  // publish responses), never in the Ledger or "my theses" lists.
+  referencePrice?: string | null;
   conviction: number;
   horizonDays: number;
   statement: string;
