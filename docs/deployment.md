@@ -74,6 +74,25 @@ Run "Daily market jobs" by hand **only on a weekday, between 4:30pm and midnight
 
 A refused run writes nothing, so it can't hide a gap: the stale-price alert counts days since the newest saved price, and the run itself fails. Run it again in the safe hours.
 
+### Weekday market closures (public holidays)
+
+On a weekday when NGX is closed, its list still shows the previous trading day, which is already stored. The refresh then succeeds and stores nothing ("Updated 0 … 146 already stored"); no email. But nothing new is saved, so **two weekday closures in a row trip the stale-price alert the next morning**: a false alarm.
+
+**The rule:** for any weekday closure, check NGX's own trading-holiday calendar and the Federal Government's announcement the week before (Islamic dates move with the moon sighting). For two closures in a row, expect the alert the next morning, say so in advance, and that morning check by hand that the nightly backups and the market job ran.
+
+Expected weekday closures through 31 March 2027 (from secondary listings, not an official source; Islamic dates are estimates):
+
+| Date | Closure | Stale-price alert |
+|---|---|---|
+| Fri 25 Dec 2026 | Christmas Day | - |
+| Sat 26 Dec 2026 | Boxing Day. If the Government moves it to Mon 28 Dec: | fires Tue 29 Dec (Fri 25 and Mon 28 missed) |
+| Fri 1 Jan 2027 | New Year's Day | - |
+| Wed 10 and Thu 11 Mar 2027 (estimate) | Eid al-Fitr | fires Fri 12 Mar |
+| Fri 26 Mar 2027 | Good Friday | - |
+| Mon 29 Mar 2027 | Easter Monday | fires Tue 30 Mar (Fri 26 and Mon 29 missed) |
+
+Sources (read 7 October 2026): Legit.ng's 2026 list (legit.ng/nigeria/1690582-full-list-public-holidays-fg-declare-2026), Current Affairs Nigeria (currentaffairs.com.ng/public-holidays), timeanddate.com (timeanddate.com/holidays/nigeria/2027) and nigeriaholidays.com.ng (official-holidays-2027.html). Confirm each against NGX's calendar before relying on it.
+
 ## Uptime monitor (G2)
 
 The API answers two health checks without the edge key:
@@ -264,6 +283,63 @@ From `backend/`, in PowerShell, with the PR's branch checked out (`git switch ch
 9. `Remove-Item Env:\DIRECT_URL`. Then the PR can merge. The Neon snapshot branch can be deleted once the next scheduled market run has succeeded.
 
 Rehearsed on 7 October 2026 on a local database built the way staging is (the first five migrations applied and recorded): status listed exactly the new migration; diff (a) printed no difference with exit code 0, and (b) exactly the three statements above with exit code 2; the three before-checks printed `(0 rows)`; deploy applied it; status was up to date, the ledger had six finished rows, and the checks showed the columns and index above.
+
+### Thesis hidden columns (`20261007180000_thesis_hidden`)
+
+One additive migration for the operator's takedown (Terms, section 7): `Thesis.hiddenAt` (timestamp) and `Thesis.hiddenReason` (text), both nullable, no default. Empty means not hidden. Nothing is backfilled or deleted.
+
+**Apply it to staging before merging the PR that adds it** (`chore/migration-thesis-hidden`). The new code's Prisma client reads these columns. The code running now is unaffected by the migrated database (the full backend e2e suite passed with the old schema's client against a migrated database, 7 October 2026).
+
+From `backend/`, in PowerShell, with the PR's branch checked out (`git switch chore/migration-thesis-hidden`).
+
+1. **Host check.** Load staging's **direct** URL into this window only:
+   ```
+   $env:DIRECT_URL = "<staging's direct connection string>"
+   $psql = "C:\Program Files\PostgreSQL\18\bin\psql.exe"
+   $u = [uri]$env:DIRECT_URL; "$($u.Host)  $($u.AbsolutePath)"
+   ```
+   It must print a host starting `ep-bold-sky-a5oday2y.`, with no `-pooler`, and `/neondb`. Anything else: stop.
+2. **Read-only status and ledger:**
+   ```
+   npx prisma migrate status
+   & $psql $env:DIRECT_URL -f prisma\checks\migration-ledger.sql
+   ```
+   Status must list exactly one migration not yet applied, `20261007180000_thesis_hidden`. The ledger must list the six before it, each with `finished_at`. Anything else: stop.
+3. **Read-only diffs** (the local shadow database, as before):
+   ```
+   & $psql "postgresql://postgres:<local password>@localhost:5432/postgres" -c "CREATE DATABASE the_long_view_shadow"   # "already exists" is fine
+   $env:SHADOW_DATABASE_URL = "postgresql://postgres:<local password>@localhost:5432/the_long_view_shadow"
+   $six = Join-Path $env:TEMP "tlv-first-six"
+   Remove-Item $six -Recurse -Force -ErrorAction SilentlyContinue
+   Copy-Item prisma\migrations $six -Recurse
+   Remove-Item (Join-Path $six "20261007180000_thesis_hidden") -Recurse
+
+   # a) Staging must match the first six exactly
+   npx prisma migrate diff --from-config-datasource --to-migrations $six --exit-code
+   "exit code: $LASTEXITCODE"
+
+   # b) What the new migration adds, as SQL
+   npx prisma migrate diff --from-config-datasource --to-migrations prisma\migrations --script --exit-code
+   "exit code: $LASTEXITCODE"
+
+   Remove-Item Env:\SHADOW_DATABASE_URL
+   ```
+   a) must print `No difference detected.` and `exit code: 0`. b) must print `exit code: 2` and exactly one statement: `ALTER TABLE "public"."Thesis" ADD COLUMN "hiddenAt" TIMESTAMP(3), ADD COLUMN "hiddenReason" TEXT;`. Anything else: stop, and keep the output (structure only).
+4. **Read-only check, before:** `& $psql $env:DIRECT_URL -f prisma\checks\thesis-hidden-columns.sql` prints `(0 rows)`.
+5. **Snapshot:** in the Neon console, create a branch from `staging`, for example `staging-before-thesis-hidden`. Every step from here writes.
+6. **Apply:** `npx prisma migrate deploy`. It prints `Applying migration 20261007180000_thesis_hidden`.
+7. **Verify:**
+   ```
+   npx prisma migrate status
+   & $psql $env:DIRECT_URL -f prisma\checks\migration-ledger.sql
+   & $psql $env:DIRECT_URL -f prisma\checks\thesis-hidden-columns.sql
+   & $psql $env:DIRECT_URL -f prisma\checks\hidden-theses.sql
+   ```
+   Status says `Database schema is up to date!`. The ledger lists seven, all finished. `hiddenAt` is `timestamp` and `hiddenReason` is `text`, both nullable with no default. `hidden-theses.sql` prints `(0 rows)`.
+8. **If step 6 failed:** nothing was applied (one transaction). Run `npx prisma migrate resolve --rolled-back 20261007180000_thesis_hidden`, keep the output, and stop.
+9. `Remove-Item Env:\DIRECT_URL`. Then the PR can merge. Delete the snapshot branch once the next scheduled market run has succeeded.
+
+Rehearsed on 7 October 2026 on a local database built the way staging will be (the first six migrations applied and recorded): status listed exactly the new migration; diff (a) printed no difference with exit code 0, and (b) exactly the statement above with exit code 2; the before-check printed `(0 rows)`; deploy applied it; status was up to date, the ledger had seven finished rows, and the checks showed the two columns and no hidden theses.
 
 ### Baselining: tables exist but the migration ledger is empty
 

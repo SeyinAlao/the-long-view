@@ -25,8 +25,8 @@ export default async function WelcomeTermsPage({
       <p className="text-[11px] uppercase tracking-[0.1em] text-muted">Before you continue</p>
       <h1 className="font-display mt-2 text-4xl">The Terms of the record.</h1>
       <p className="mt-3 text-sm leading-relaxed text-ink/80">
-        To write or publish on The Long View, agree to its Terms of Service and Privacy Policy.
-        Reading needs nothing.
+        To write or publish on The Long View, confirm you&apos;re 18 or older and agree to its Terms
+        of Service and Privacy Policy. Reading needs nothing.
       </p>
       <TermsAcceptForm next={next} />
     </main>

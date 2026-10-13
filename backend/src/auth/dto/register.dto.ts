@@ -36,10 +36,12 @@ export class RegisterDto {
   @MaxLength(100)
   name!: string;
 
-  // The sign-up checkbox (ADR 014): the Terms and the Privacy Policy,
-  // and that theses are opinions, not investment advice.
+  // The sign-up checkbox (ADR 014): 18 or older (self-declared, not
+  // verified), the Terms and the Privacy Policy, and that theses are
+  // opinions, not investment advice.
   @Equals(true, {
-    message: 'You must agree to the Terms of Service and the Privacy Policy to create an account.',
+    message:
+      'You must confirm you are 18 or older and agree to the Terms of Service and the Privacy Policy to create an account.',
   })
   acceptedTerms!: boolean;
 }
