@@ -48,6 +48,15 @@ export async function withdrawTermsAcceptance(username: string): Promise<void> {
   if (rowCount !== 1) throw new Error(`No user ${username}`);
 }
 
+// As the operator's takedown script does it (backend/scripts/takedown-thesis.ts).
+export async function hideThesis(id: string, reason = 'test_takedown'): Promise<void> {
+  const { rowCount } = await pool.query('UPDATE "Thesis" SET "hiddenAt" = now(), "hiddenReason" = $2 WHERE id = $1', [
+    id,
+    reason,
+  ]);
+  if (rowCount !== 1) throw new Error(`No thesis ${id}`);
+}
+
 export async function closeDatabase(): Promise<void> {
   await pool.end();
 }

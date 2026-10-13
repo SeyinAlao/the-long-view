@@ -5,6 +5,7 @@ import type { MouseEvent } from 'react';
 import { useDiscardDraft } from '@/hooks/use-theses';
 import type { Thesis } from '@/lib/theses';
 import { formatDate } from '@/lib/format-date';
+import { RemovedNotice } from './removed-notice';
 
 interface ThesisRowProps {
   thesis: Thesis;
@@ -13,6 +14,16 @@ interface ThesisRowProps {
 export function ThesisRow({ thesis }: ThesisRowProps) {
   const isDraft = thesis.status === 'DRAFT';
   const discard = useDiscardDraft();
+
+  if (thesis.hiddenAt) {
+    // Removed by the operator: no link, no text of the thesis.
+    return (
+      <div className="border-b border-ink/10 py-4">
+        <p className="font-mono text-sm font-medium">{thesis.security.ticker}</p>
+        <RemovedNotice hiddenAt={thesis.hiddenAt} />
+      </div>
+    );
+  }
 
   function handleDiscard(e: MouseEvent) {
     e.preventDefault();
