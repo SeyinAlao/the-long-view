@@ -56,7 +56,7 @@ Failure emails for scheduled runs go to the GitHub user who created the workflow
 
 ### Stale price alert
 
-The private repo's **"Stale price alert"** workflow runs each weekday at 8:47am Lagos. It reads only the newest price row (`npm run market-data:freshness`) and fails, so emails, once two weekday refreshes in a row are missing. Publishing stops 7 days after the last refresh (ADR 009), so this leaves several days to act. If it fires:
+The private repo's **"Stale price alert"** workflow is scheduled for 8:47am Lagos each weekday, but GitHub has started it 7 to 9 hours late (the afternoon, 2-12 October), so a failed overnight run is noticed that afternoon, not that morning. It reads only the newest price row (`npm run market-data:freshness`) and fails, so emails, once two weekday refreshes in a row are missing. Publishing stops 7 days after the last refresh (ADR 009), so this leaves several days to act. If it fires:
 
 1. Open the "Daily market jobs" runs. A failed run's log says why (an NGX refusal names its reason). No run at all means the schedule didn't fire.
 2. After 4:30pm Lagos on a weekday, run "Daily market jobs" by hand (Run workflow). Its "Updated" line should show about 146 securities and the day's NGX trade date.

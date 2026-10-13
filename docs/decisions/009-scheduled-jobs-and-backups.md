@@ -12,8 +12,9 @@ local development only; Render runs with `DISABLE_SCHEDULED_JOBS=true`.
 - **Refresh:** weekdays at 5:30pm Lagos (`30 16 * * 1-5` UTC; Lagos is
   UTC+1 with no daylight saving). NGX trades 9:00am-4:00pm since 27
   April 2026, and its public price list runs about 30 minutes behind.
-  Actions schedules can start 5-30 minutes late, which only moves the
-  run further past the close.
+  Actions schedules start late, which only moves the run further past
+  the close: 5-30 minutes was the expectation; on this repo the market
+  job has started 4h22m to 6h38m late (2-12 October).
 - **Evaluation:** straight after the refresh, in the same job. It still
   runs if the refresh fails, which is safe: a thesis is only graded on a
   price dated on or after its resolve date, so a stale price list just
